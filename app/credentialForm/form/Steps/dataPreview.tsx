@@ -14,6 +14,8 @@ import {
 import { StepTrackShape } from '../fromTexts & stepTrack/StepTrackShape'
 
 GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
+const isPDF = (fileName: string) => fileName.toLowerCase().endsWith('.pdf')
+const isMP4 = (fileName: string) => fileName.toLowerCase().endsWith('.mp4')
 
 const cleanHTML = (htmlContent: string) => {
   return htmlContent
@@ -26,10 +28,13 @@ const cleanHTML = (htmlContent: string) => {
 
 interface DataPreviewProps {
   formData: FormData
-  selectedFiles: any[]
+  selectedFiles: {
+    id: string
+    name: string
+    url: string
+    isFeatured?: boolean
+  }[]
 }
-
-const isPDF = (fileName: string) => fileName.toLowerCase().endsWith('.pdf')
 const renderPDFThumbnail = async (fileUrl: string) => {
   try {
     const loadingTask = getDocument(fileUrl)
@@ -47,30 +52,79 @@ const renderPDFThumbnail = async (fileUrl: string) => {
   } catch (error) {
     console.error('Error rendering PDF thumbnail:', error)
   }
-  return '/fallback-pdf-thumbnail.png' // fallback image
+  return '/fallback-pdf-thumbnail.svg'
+}
+
+const generateVideoThumbnail = (videoUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.src = videoUrl
+    video.addEventListener(
+      'loadeddata',
+      () => {
+        video.currentTime = 1
+      },
+      { once: true }
+    )
+    video.addEventListener(
+      'seeked',
+      () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Could not get 2D canvas context'))
+          return
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const dataURL = canvas.toDataURL('image/png')
+        resolve(dataURL)
+      },
+      { once: true }
+    )
+
+    video.addEventListener('error', e => {
+      reject(e)
+    })
+  })
 }
 
 const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) => {
-  console.log(':  formData', formData)
   const theme: Theme = useTheme()
   const isLargeScreen = useMediaQuery(theme.breakpoints.up('sm'))
 
   const [pdfThumbnails, setPdfThumbnails] = useState<Record<string, string>>({})
+  const [videoThumbnails, setVideoThumbnails] = useState<Record<string, string>>({})
+
   useEffect(() => {
     selectedFiles.forEach(async file => {
       if (isPDF(file.name) && !pdfThumbnails[file.id]) {
         const thumbnail = await renderPDFThumbnail(file.url)
         setPdfThumbnails(prev => ({ ...prev, [file.id]: thumbnail }))
       }
+
+      if (isMP4(file.name) && !videoThumbnails[file.id]) {
+        try {
+          const thumbnail = await generateVideoThumbnail(file.url)
+          setVideoThumbnails(prev => ({ ...prev, [file.id]: thumbnail }))
+        } catch (error) {
+          console.error('Error generating video thumbnail:', error)
+          setVideoThumbnails(prev => ({
+            ...prev,
+            [file.id]: '/fallback-video.png'
+          }))
+        }
+      }
     })
-  }, [selectedFiles, pdfThumbnails])
+  }, [selectedFiles, pdfThumbnails, videoThumbnails])
 
   const handleNavigate = (url: string, target: string = '_self') => {
     window.open(url, target)
   }
 
   const hasValidEvidence = formData.portfolio?.some(
-    (porto: { name: any; url: any }) => porto.name && porto.url
+    (porto: { name: string; url: string }) => porto.name && porto.url
   )
 
   return (
@@ -83,7 +137,7 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
           textAlign: 'center'
         }}
       >
-        Here’s what you’ve created!{' '}
+        Here’s what you’ve created!
       </Typography>
       <StepTrackShape />
       <Box
@@ -110,7 +164,7 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
             <Box sx={commonTypographyStyles}>
               <span
                 dangerouslySetInnerHTML={{
-                  __html: cleanHTML(formData.credentialDescription as any)
+                  __html: cleanHTML(formData.credentialDescription)
                 }}
               />
             </Box>
@@ -138,8 +192,19 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
                           height: '100%',
                           objectFit: 'cover'
                         }}
-                        src={pdfThumbnails[file.id] ?? '/fallback-pdf-thumbnail.png'}
+                        src={pdfThumbnails[file.id] ?? '/fallback-pdf-thumbnail.svg'}
                         alt='PDF Preview'
+                      />
+                    ) : isMP4(file.name) ? (
+                      <img
+                        style={{
+                          borderRadius: '20px',
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        src={videoThumbnails[file.id] ?? '/fallback-video.png'}
+                        alt='Video Thumbnail'
                       />
                     ) : (
                       <img
@@ -166,7 +231,7 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
           <Typography sx={commonTypographyStyles}>
             <span
               dangerouslySetInnerHTML={{
-                __html: cleanHTML(formData?.description as any)
+                __html: cleanHTML(formData?.description as string)
               }}
             />
           </Typography>
@@ -196,13 +261,13 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
                   {formData.evidenceLink}
                 </li>
                 {formData.portfolio.map(
-                  (porto: { name: any; url: React.Key | null | undefined }) =>
+                  (porto: { name: string; url: string }) =>
                     porto.name &&
                     porto.url && (
                       <li
                         style={{ cursor: 'pointer', width: 'fit-content' }}
                         key={porto.url}
-                        onClick={() => handleNavigate(porto.url as string, '_blank')}
+                        onClick={() => handleNavigate(porto.url, '_blank')}
                       >
                         {porto.name}
                       </li>

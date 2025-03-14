@@ -29,6 +29,7 @@ const FileListContainer = styled(Box)({
 
 const isImage = (fileName: string) => /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName)
 const isPDF = (fileName: string) => fileName.toLowerCase().endsWith('.pdf')
+const isMP4 = (fileName: string) => fileName.toLowerCase().endsWith('.mp4')
 
 const renderPDFThumbnail = async (file: FileItem) => {
   try {
@@ -47,20 +48,77 @@ const renderPDFThumbnail = async (file: FileItem) => {
   } catch (error) {
     console.error('Error rendering PDF thumbnail:', error)
   }
-  return '/fallback-pdf-thumbnail.png'
+  return '/fallback-pdf-thumbnail.svg'
+}
+
+const generateVideoThumbnail = (file: FileItem): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+
+    video.src = file.url
+
+    video.addEventListener(
+      'loadeddata',
+      () => {
+        video.currentTime = 1
+      },
+      { once: true }
+    )
+
+    video.addEventListener(
+      'seeked',
+      () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+          const context = canvas.getContext('2d')
+
+          if (!context) {
+            reject(new Error('Canvas context not available for video thumbnail.'))
+            return
+          }
+          context.drawImage(video, 0, 0, canvas.width, canvas.height)
+          const dataURL = canvas.toDataURL('image/png')
+          resolve(dataURL)
+        } catch (err) {
+          reject(err)
+        }
+      },
+      { once: true }
+    )
+
+    video.addEventListener('error', e => {
+      reject(e)
+    })
+  })
 }
 
 const FileListDisplay = ({ files, onDelete, onReorder }: FileListProps) => {
   const [pdfThumbnails, setPdfThumbnails] = useState<Record<string, string>>({})
+  const [videoThumbnails, setVideoThumbnails] = useState<Record<string, string>>({})
 
   useEffect(() => {
     files.forEach(async file => {
       if (isPDF(file.name) && !pdfThumbnails[file.id]) {
-        const thumbnail = await renderPDFThumbnail(file)
-        setPdfThumbnails(prev => ({ ...prev, [file.id]: thumbnail }))
+        const pdfThumb = await renderPDFThumbnail(file)
+        setPdfThumbnails(prev => ({ ...prev, [file.id]: pdfThumb }))
+      }
+
+      if (isMP4(file.name) && !videoThumbnails[file.id]) {
+        try {
+          const vidThumb = await generateVideoThumbnail(file)
+          setVideoThumbnails(prev => ({ ...prev, [file.id]: vidThumb }))
+        } catch (err) {
+          console.error('Error generating MP4 thumbnail:', err)
+          setVideoThumbnails(prev => ({
+            ...prev,
+            [file.id]: '/fallback-video.png'
+          }))
+        }
       }
     })
-  }, [files, pdfThumbnails])
+  }, [files, pdfThumbnails, videoThumbnails])
 
   const handleMoveItem = (
     event: React.MouseEvent,
@@ -91,23 +149,34 @@ const FileListDisplay = ({ files, onDelete, onReorder }: FileListProps) => {
           >
             <CardContent sx={{ p: 4, width: '100%' }}>
               <Box sx={{ marginRight: '10px', display: 'flex', alignItems: 'center' }}>
-                {isImage(file.name) ? (
+                {isImage(file.name) && (
                   <img
                     src={file.url}
                     alt={file.name.split('.')[0]}
+                    style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+                  />
+                )}
+                {isPDF(file.name) && (
+                  <img
+                    src={pdfThumbnails[file.id] ?? '/fallback-pdf-thumbnail.svg'}
+                    alt={file.name.split('.')[0]}
                     width='100%'
-                    height='100%'
+                    height='auto'
                     style={{ borderRadius: '8px' }}
                   />
-                ) : isPDF(file.name) ? (
+                )}
+
+                {isMP4(file.name) && (
                   <Image
-                    src={pdfThumbnails[file.id] ?? '/fallback-pdf-thumbnail.png'}
+                    src={videoThumbnails[file.id] ?? '/fallback-video.png'}
                     alt={file.name.split('.')[0]}
                     width={80}
                     height={80}
                     style={{ borderRadius: '8px' }}
                   />
-                ) : (
+                )}
+
+                {!isImage(file.name) && !isPDF(file.name) && !isMP4(file.name) && (
                   <Box
                     sx={{
                       width: 80,
