@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Autocomplete, Box, FormLabel, TextField, Typography } from '@mui/material'
 import {
   UseFormRegister,
@@ -28,7 +28,13 @@ interface Step2Props {
   setSelectedFiles: any
 }
 
-const options = ['Friend', 'Relative', 'Volunteered together', 'College', 'Other']
+const options = [
+  'Friend',
+  'Professional colleague',
+  'Volunteered together',
+  'College',
+  'Other, enter preferred relationship label'
+]
 
 const Step2: React.FC<Step2Props> = ({
   register,
@@ -41,6 +47,7 @@ const Step2: React.FC<Step2Props> = ({
   setSelectedFiles
 }) => {
   const displayName = fullName || ''
+  const [isOther, setIsOther] = useState(false)
 
   const handleEditorChange = (field: string) => (value: string) => {
     setValue(field, value)
@@ -72,7 +79,7 @@ const Step2: React.FC<Step2Props> = ({
             Recommendation Details
           </Typography>
           <FormLabel sx={formLabelStyles} id='full-name-label'>
-            Name (required):{' '}
+            Name (required):
           </FormLabel>
           <TextField
             {...register('fullName', {
@@ -92,35 +99,43 @@ const Step2: React.FC<Step2Props> = ({
         </Box>
 
         <Box>
-          <FormLabel sx={formLabelStyles} id='name-label'>
-            How do you know {displayName} (required)?{' '}
+          <FormLabel sx={formLabelStyles} id='relationship-label'>
+            How do you know {displayName} (required)?
           </FormLabel>
 
           <Controller
             name='credentialName'
             control={control}
-            rules={{ required: 'Skill name is required' }}
+            rules={{ required: 'Relationship is required' }}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
               <Autocomplete
-                freeSolo
+                freeSolo={isOther}
                 options={options}
                 value={value || ''}
                 onChange={(event, newValue) => {
-                  onChange(newValue)
+                  if (newValue === 'Other, enter preferred relationship label') {
+                    setIsOther(true)
+                    onChange('')
+                  } else {
+                    setIsOther(false)
+                    onChange(newValue)
+                  }
                 }}
                 onInputChange={(event, newInputValue) => {
-                  onChange(newInputValue)
+                  if (isOther) {
+                    onChange(newInputValue)
+                  }
                 }}
                 renderInput={params => (
                   <TextField
                     {...params}
-                    placeholder='Example: Caring for (cultivating) healthy plants'
+                    placeholder='Select your relationship'
                     variant='outlined'
                     sx={TextFieldStyles}
-                    aria-labelledby='name-label'
+                    aria-labelledby='relationship-label'
                     inputProps={{
                       ...params.inputProps,
-                      'aria-label': 'skill-name',
+                      readOnly: !isOther,
                       style: inputPropsStyles
                     }}
                     error={!!error}
@@ -134,7 +149,7 @@ const Step2: React.FC<Step2Props> = ({
 
         <Box>
           <Typography sx={formLabelStyles} id='recommendation-text-label'>
-            Feel free to use the example text below or write your own recommendation:{' '}
+            Feel free to use the example text below or write your own recommendation:
           </Typography>
           <TextEditor
             value={watch('recommendationText') || ''}
