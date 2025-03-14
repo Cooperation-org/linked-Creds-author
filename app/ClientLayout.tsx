@@ -38,6 +38,7 @@ export default function ClientLayout({
                 backgroundRepeat: 'no-repeat',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
+                pb: '60px',
                 backgroundBlendMode: pathname === '/' ? 'overlay' : 'normal',
                 backgroundColor:
                   pathname === '/'
