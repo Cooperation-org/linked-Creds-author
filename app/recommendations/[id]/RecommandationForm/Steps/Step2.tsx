@@ -149,12 +149,13 @@ const Step2: React.FC<Step2Props> = ({
 
         <Box>
           <Typography sx={formLabelStyles} id='recommendation-text-label'>
-            Feel free to use the example text below or write your own recommendation:
+            write your recommendation here to support or confirm the requestor’s skill
+            claims.
           </Typography>
           <TextEditor
             value={watch('recommendationText') || ''}
             onChange={handleEditorChange('recommendationText')}
-            placeholder={`I’ve worked with ${displayName} for about two years, managing her at The Coffee Place. She is an excellent worker, prompt, and applies the skills she learned in Barista training on a daily basis.`}
+            placeholder={`I’ve worked with ${displayName} for about two years, managing her at The Coffee Place. She is an excellent worker, prompt, and applies the skills she learned in Barista training on a daily basis. —This is just an example of how the recommendation might begin.`}
           />
           {errors.recommendationText && (
             <Typography color='error'>{errors.recommendationText.message}</Typography>
