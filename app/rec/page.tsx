@@ -464,7 +464,6 @@ const Page = () => {
                     },
                     '&:disabled': {
                       color: '#FFF',
-                      backgroundColor: '#EFF6FF',
                       opacity: 0.7
                     }
                   }}
