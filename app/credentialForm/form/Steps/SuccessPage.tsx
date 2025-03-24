@@ -19,8 +19,8 @@ import {
   HeartSVG,
   BlueBadge,
   NewCopy,
-  NewLinkedin
-  // NewEmail
+  NewLinkedin,
+  SVGEmail
 } from '../../../Assets/SVGs'
 import LoadingOverlay from '../../../components/Loading/LoadingOverlay'
 import { FormData } from '../../../credentialForm/form/types/Types'
@@ -366,6 +366,7 @@ const SuccessPage: React.FC<SuccessPageProps> = ({
           onClick={() => handleShareOption('Email')}
           sx={buttonStyles}
         >
+          <SVGEmail />
           Share Via Mail
         </Button>
       </Box>

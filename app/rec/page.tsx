@@ -10,19 +10,38 @@ import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import { styled } from '@mui/material/styles'
-import { Button, CircularProgress } from '@mui/material'
+import { Button, CircularProgress, Snackbar, Alert, Tooltip } from '@mui/material'
 import { getFileViaFirebase } from '../firebase/storage'
+
+interface AlertState {
+  open: boolean
+  message: string
+  severity: 'success' | 'error' | 'info' | 'warning'
+}
+
+interface RecommendationData {
+  recommendationText: string
+  howKnow: any
+  name: string
+  qualifications: string
+  portfolio: Array<{ title: string; url: string }>
+}
 
 const Page = () => {
   const { storage } = useGoogleDrive()
-  const [recommendation, setRecommendation] = useState<{
-    recommendationText: string
-    howKnow: any
-    name: string
-    qualifications: string
-    portfolio: any
-  } | null>()
+  const [recommendation, setRecommendation] = useState<RecommendationData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isApproved, setIsApproved] = useState(false)
+  const [isRejected, setIsRejected] = useState(false)
+  const [alertState, setAlertState] = useState<AlertState>({
+    open: false,
+    message: '',
+    severity: 'info'
+  })
+  const [approveLoading, setApproveLoading] = useState(false)
+  const [rejectLoading, setRejectLoading] = useState(false)
+  const [recId, setRecId] = useState<string | null>(null)
+  const [vcId, setVcId] = useState<string | null>(null)
 
   const SectionTitle = styled(Typography)(({ theme }) => ({
     fontSize: '0.875rem',
@@ -52,8 +71,74 @@ const Page = () => {
     return null
   }
 
-  const recId = getQueryParams('recId')
-  const vcId = getQueryParams('vcId')
+  useEffect(() => {
+    setRecId(getQueryParams('recId'))
+    setVcId(getQueryParams('vcId'))
+  }, [])
+  useEffect(() => {
+    if (typeof window !== 'undefined' && recId) {
+      const hiddenRecs = JSON.parse(localStorage.getItem('hiddenRecommendations') ?? '[]')
+      if (hiddenRecs.includes(recId)) {
+        setIsRejected(true)
+      }
+    }
+  }, [recId])
+
+  useEffect(() => {
+    const checkProcessingStatus = async () => {
+      try {
+        if (typeof window !== 'undefined' && recId) {
+          const localApprovedRecs = JSON.parse(
+            localStorage.getItem('approvedRecommendations') ?? '[]'
+          )
+          if (localApprovedRecs.includes(recId)) {
+            setIsApproved(true)
+            return
+          }
+        }
+
+        if (!vcId || !storage || !recId) return
+
+        const vcFolderId = await storage.getFileParents(vcId)
+        const files = await storage.findFilesUnderFolder(vcFolderId)
+        const relationsFile = files.find((f: any) => f.name === 'RELATIONS')
+
+        if (relationsFile) {
+          try {
+            const relations = await (storage as any).getRelationsFile(relationsFile.id)
+
+            const alreadyProcessed = relations.some(
+              (relation: any) => relation.recommendationFileId === recId
+            )
+
+            if (alreadyProcessed) {
+              setIsApproved(true)
+
+              if (typeof window !== 'undefined') {
+                const localApprovedRecs = JSON.parse(
+                  localStorage.getItem('approvedRecommendations') ?? '[]'
+                )
+                if (!localApprovedRecs.includes(recId)) {
+                  localStorage.setItem(
+                    'approvedRecommendations',
+                    JSON.stringify([...localApprovedRecs, recId])
+                  )
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error getting relations file:', error)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking processing status:', error)
+      }
+    }
+
+    if (recId && vcId) {
+      checkProcessingStatus()
+    }
+  }, [recId, vcId, storage])
 
   useEffect(() => {
     const fetchRecommendation = async () => {
@@ -88,10 +173,53 @@ const Page = () => {
     fetchRecommendation()
   }, [recId, storage])
 
+  const handleUnhide = async () => {
+    if (isRejected && recId) {
+      try {
+        if (typeof window !== 'undefined') {
+          const hiddenRecs = JSON.parse(
+            localStorage.getItem('hiddenRecommendations') ?? '[]'
+          )
+          const updatedHiddenRecs = hiddenRecs.filter((id: string) => id !== recId)
+          localStorage.setItem('hiddenRecommendations', JSON.stringify(updatedHiddenRecs))
+        }
+
+        setIsRejected(false)
+        setAlertState({
+          open: true,
+          message: 'Recommendation is now visible in your claim again',
+          severity: 'success'
+        })
+      } catch (error) {
+        console.error('Error unhiding recommendation:', error)
+        setAlertState({
+          open: true,
+          message: 'Error unhiding recommendation. Please try again.',
+          severity: 'error'
+        })
+      }
+    }
+  }
+
   const handleApprove = async () => {
+    if (isApproved) {
+      setAlertState({
+        open: true,
+        message: 'This recommendation has already been approved',
+        severity: 'info'
+      })
+      return
+    }
+
+    setApproveLoading(true)
     try {
-      if (!vcId || !storage) {
+      if (!vcId || !storage || !recId) {
         console.log('No recommendation file id')
+        setAlertState({
+          open: true,
+          message: 'Error: Missing recommendation file ID',
+          severity: 'error'
+        })
         return
       }
       const vcFolderId = await storage.getFileParents(vcId)
@@ -100,13 +228,106 @@ const Page = () => {
 
       await storage.updateRelationsFile({
         relationsFileId: relationsFile.id,
-        recommendationFileId: recId as string
+        recommendationFileId: recId
+      })
+
+      if (typeof window !== 'undefined') {
+        const localApprovedRecs = JSON.parse(
+          localStorage.getItem('approvedRecommendations') ?? '[]'
+        )
+        if (!localApprovedRecs.includes(recId)) {
+          localStorage.setItem(
+            'approvedRecommendations',
+            JSON.stringify([...localApprovedRecs, recId])
+          )
+        }
+      }
+
+      setIsApproved(true)
+      setAlertState({
+        open: true,
+        message: 'Recommendation approved successfully!',
+        severity: 'success'
       })
       console.log('Successfully approving recommendation!')
     } catch (error) {
       console.error('Error approving recommendation:', error)
+      setAlertState({
+        open: true,
+        message: 'Error approving recommendation. Please try again.',
+        severity: 'error'
+      })
+    } finally {
+      setApproveLoading(false)
     }
   }
+
+  const handleReject = async () => {
+    if (isRejected) {
+      setAlertState({
+        open: true,
+        message:
+          "You've already hidden this recommendation. You can still approve it if you want to include it in your claim.",
+        severity: 'info'
+      })
+      return
+    }
+
+    setRejectLoading(true)
+    try {
+      if (typeof window !== 'undefined' && recId) {
+        const hiddenRecs = JSON.parse(
+          localStorage.getItem('hiddenRecommendations') ?? '[]'
+        )
+        if (!hiddenRecs.includes(recId)) {
+          localStorage.setItem(
+            'hiddenRecommendations',
+            JSON.stringify([...hiddenRecs, recId])
+          )
+        }
+      }
+
+      setIsRejected(true)
+      setAlertState({
+        open: true,
+        message:
+          'This recommendation has been temporarily hidden from your claim. You can always come back and approve it later if you change your mind!',
+        severity: 'success'
+      })
+    } catch (error) {
+      console.error('Error rejecting recommendation:', error)
+      setAlertState({
+        open: true,
+        message: 'Error hiding recommendation. Please try again.',
+        severity: 'error'
+      })
+    } finally {
+      setRejectLoading(false)
+    }
+  }
+
+  const handleCloseAlert = () => {
+    setAlertState({
+      ...alertState,
+      open: false
+    })
+  }
+
+  const renderButtonContent = (
+    isLoading: boolean,
+    isComplete: boolean,
+    completeText: string,
+    initialText: string
+  ) => {
+    if (isLoading) {
+      return <CircularProgress size={24} color='inherit' />
+    }
+    if (isComplete) {
+      return completeText
+    }
+    return initialText
+  }
+
   if (loading) {
     return (
       <Box
@@ -165,7 +386,7 @@ const Page = () => {
               <Typography color='text.primary'>
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: cleanHTML(recommendation?.recommendationText as any)
+                    __html: cleanHTML(recommendation?.recommendationText)
                   }}
                 />
               </Typography>
@@ -176,30 +397,30 @@ const Page = () => {
               <Typography color='text.primary'>
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: cleanHTML(recommendation?.howKnow as any)
+                    __html: cleanHTML(recommendation?.howKnow)
                   }}
                 />
               </Typography>
             </ContentSection>
 
             <ContentSection>
-              <SectionTitle>the qualifications</SectionTitle>
+              <SectionTitle>The qualifications</SectionTitle>
               <Typography color='text.primary'>
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: cleanHTML(recommendation?.qualifications as any)
+                    __html: cleanHTML(recommendation?.qualifications)
                   }}
                 />
               </Typography>
             </ContentSection>
 
-            {recommendation?.portfolio > 0 && (
+            {recommendation?.portfolio && recommendation?.portfolio.length > 0 && (
               <ContentSection sx={{ mb: 0 }}>
                 <SectionTitle>Supporting Evidence</SectionTitle>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {recommendation?.portfolio.map((evidence: any, index: any) => (
+                  {recommendation.portfolio.map((evidence, index) => (
                     <Link
-                      key={index}
+                      key={`evidence-${index}-${evidence.url}`}
                       href={evidence.url}
                       underline='hover'
                       color='primary'
@@ -222,46 +443,96 @@ const Page = () => {
               mb: '10px'
             }}
           >
-            <Button
-              sx={{
-                padding: '10px 20px',
-                borderRadius: '100px',
-                textTransform: 'capitalize',
-                fontFamily: 'Roboto',
-                fontWeight: '600',
-                lineHeight: '20px',
-                backgroundColor: '#003FE0',
-                color: '#FFF',
-                '&:hover': {
-                  backgroundColor: '#003FE0'
-                }
-              }}
-              onClick={handleApprove}
+            <Tooltip
+              title={isApproved ? 'This recommendation has already been approved' : ''}
+              arrow
+              placement='top'
             >
-              Approve
-            </Button>
-            <Button
-              variant='contained'
-              sx={{
-                padding: '10px 20px',
-                borderRadius: '100px',
-                textTransform: 'capitalize',
-                fontFamily: 'Roboto',
-                fontWeight: '600',
-                lineHeight: '20px',
-                backgroundColor: '#003FE0',
-                color: '#FFF',
-                '&:hover': {
-                  backgroundColor: '#003FE0'
-                }
-              }}
+              <span>
+                <Button
+                  sx={{
+                    padding: '10px 20px',
+                    borderRadius: '100px',
+                    textTransform: 'capitalize',
+                    fontFamily: 'Roboto',
+                    fontWeight: '600',
+                    lineHeight: '20px',
+                    backgroundColor: isApproved ? '#EFF6FF' : '#003FE0',
+                    color: '#FFF',
+                    '&:hover': {
+                      backgroundColor: isApproved ? '#EFF6FF' : '#003FE0'
+                    },
+                    '&:disabled': {
+                      color: '#FFF',
+                      backgroundColor: '#EFF6FF',
+                      opacity: 0.7
+                    }
+                  }}
+                  onClick={handleApprove}
+                  disabled={isApproved || approveLoading}
+                >
+                  {renderButtonContent(approveLoading, isApproved, 'Approved', 'Approve')}
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={
+                isApproved
+                  ? 'This recommendation has been approved and cannot be hidden'
+                  : isRejected
+                    ? 'Click to unhide this recommendation'
+                    : ''
+              }
+              arrow
+              placement='top'
             >
-              Reject
-            </Button>
+              <span>
+                <Button
+                  variant='contained'
+                  sx={{
+                    padding: '10px 20px',
+                    borderRadius: '100px',
+                    textTransform: 'capitalize',
+                    fontFamily: 'Roboto',
+                    fontWeight: '600',
+                    lineHeight: '20px',
+                    backgroundColor: isRejected ? '#f44336' : '#003FE0',
+                    color: '#FFF',
+                    '&:hover': {
+                      backgroundColor: isRejected ? '#f44336' : '#003FE0'
+                    },
+                    '&:disabled': {
+                      color: '#FFF',
+                      opacity: 0.7
+                    }
+                  }}
+                  onClick={isRejected ? handleUnhide : handleReject}
+                  disabled={isApproved || rejectLoading}
+                >
+                  {renderButtonContent(rejectLoading, isRejected, 'Hidden', 'Hide')}
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         </Card>
       )}
+
+      <Snackbar
+        open={alertState.open}
+        autoHideDuration={6000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alertState.severity}
+          sx={{ width: '100%' }}
+        >
+          {alertState.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }
+
 export default Page

@@ -16,6 +16,9 @@ import { StepTrackShape } from '../fromTexts & stepTrack/StepTrackShape'
 GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 const isPDF = (fileName: string) => fileName.toLowerCase().endsWith('.pdf')
 const isMP4 = (fileName: string) => fileName.toLowerCase().endsWith('.mp4')
+const isGoogleDriveImageUrl = (url: string): boolean => {
+  return /https:\/\/drive\.google\.com\/uc\?export=view&id=.+/.test(url)
+}
 
 const cleanHTML = (htmlContent: string) => {
   return htmlContent
@@ -122,6 +125,9 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
   const handleNavigate = (url: string, target: string = '_self') => {
     window.open(url, target)
   }
+  const shouldDisplayUrl = (url: string): boolean => {
+    return !isGoogleDriveImageUrl(url)
+  }
 
   const hasValidEvidence = formData.portfolio?.some(
     (porto: { name: string; url: string }) => porto.name && porto.url
@@ -137,7 +143,7 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
           textAlign: 'center'
         }}
       >
-        Here’s what you’ve created!
+        Here&apos;s what you&apos;ve created!
       </Typography>
       <StepTrackShape />
       <Box
@@ -251,25 +257,29 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
             <Box sx={commonTypographyStyles}>
               <Typography sx={{ display: 'block' }}>Evidence:</Typography>
               <ul style={evidenceListStyles}>
-                <li
-                  style={{ cursor: 'pointer', width: 'fit-content' }}
-                  key={formData.evidenceLink}
-                  onClick={() =>
-                    handleNavigate(formData.evidenceLink as string, '_blank')
-                  }
-                >
-                  {formData.evidenceLink}
-                </li>
+                {formData.evidenceLink &&
+                  shouldDisplayUrl(formData.evidenceLink as string) && (
+                    <li
+                      style={{ cursor: 'pointer', width: 'fit-content' }}
+                      key={formData.evidenceLink}
+                      onClick={() =>
+                        handleNavigate(formData.evidenceLink as string, '_blank')
+                      }
+                    >
+                      {formData.evidenceLink}
+                    </li>
+                  )}
                 {formData.portfolio.map(
                   (porto: { name: string; url: string }) =>
                     porto.name &&
-                    porto.url && (
+                    porto.url &&
+                    (porto.name || shouldDisplayUrl(porto.url)) && (
                       <li
                         style={{ cursor: 'pointer', width: 'fit-content' }}
                         key={porto.url}
                         onClick={() => handleNavigate(porto.url, '_blank')}
                       >
-                        {porto.name}
+                        {porto.name || porto.url}
                       </li>
                     )
                 )}
