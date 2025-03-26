@@ -133,7 +133,6 @@ const SuccessPage: React.FC<SuccessPageProps> = ({
     }
 
     if (option === 'Email') {
-      // Navigate to the mail route instead of creating mailto: link
       const mailPageUrl = `${window.location.origin}/mail/${fileId}`
       window.location.href = mailPageUrl
     }
