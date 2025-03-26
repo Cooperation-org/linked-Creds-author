@@ -30,7 +30,6 @@ import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteIcon from '@mui/icons-material/Delete'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import useGoogleDrive from '../hooks/useGoogleDrive'
 import LoadingOverlay from '../components/Loading/LoadingOverlay'
@@ -170,25 +169,15 @@ const ClaimsPageClient: React.FC = () => {
     setViewClaimDialogOpen(false)
   }
 
-  const showNotification = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({
-      open: true,
-      message,
-      severity
-    })
-  }
-
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }))
   }
 
   const handleEmailShare = (claim: any, e?: React.MouseEvent) => {
     e?.stopPropagation()
-    const url = `${window.location.origin}/view/${claim.id}`
-    const subject = encodeURIComponent(claim?.credentialSubject.achievement[0].name)
-    const body = encodeURIComponent(url)
-    const mailtoLink = `mailto:?subject=${subject}&body=${body}`
-    window.open(mailtoLink)
+    const claimId = claim.id.id
+    const mailPageUrl = `${window.location.origin}/mail/${claimId}`
+    window.location.href = mailPageUrl
   }
   const handleDesktopMenuOpen = (event: React.MouseEvent<HTMLElement>, claim: any) => {
     event.stopPropagation()

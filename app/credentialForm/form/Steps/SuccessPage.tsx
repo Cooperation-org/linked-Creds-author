@@ -113,7 +113,7 @@ const SuccessPage: React.FC<SuccessPageProps> = ({
     option: 'LinkedIn' | 'Email' | 'CopyURL' | 'View' | 'LinkedTrust'
   ) => {
     const credentialLink = `https://linkedcreds.allskillscount.org/view/${fileId}`
-    const credentialData = res
+    // const credentialData = res
 
     if (option === 'LinkedIn') {
       const linkedInUrl = generateLinkedInUrl()
@@ -133,45 +133,9 @@ const SuccessPage: React.FC<SuccessPageProps> = ({
     }
 
     if (option === 'Email') {
-      const subject = 'Check out my new certification'
-      const body = `You can view my certification here: ${credentialLink}`
-      let emailClientOpened = false
-
-      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-      window.location.href = mailtoLink
-      const handleEmailClientOpened = () => {
-        emailClientOpened = true
-        clearTimeout(fallbackTimer)
-        showNotification('Email client opened successfully', 'success')
-        window.removeEventListener('blur', handleEmailClientOpened)
-      }
-
-      window.addEventListener('blur', handleEmailClientOpened)
-      const fallbackTimer = setTimeout(() => {
-        if (!emailClientOpened && !document.hidden) {
-          try {
-            const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(
-              subject
-            )}&body=${encodeURIComponent(body)}`
-            window.open(gmailLink, '_blank')
-            navigator.clipboard
-              .writeText(`${subject}\n\n${body}`)
-              .then(() => {
-                showNotification('Message copied to clipboard for Gmail', 'success')
-                window.removeEventListener('blur', handleEmailClientOpened)
-              })
-              .catch(err => {
-                console.error('Clipboard error:', err)
-                copyFormValuesToClipboard(credentialLink)
-                showNotification('Link copied to clipboard as fallback', 'success')
-              })
-          } catch (error) {
-            console.error('Gmail fallback error:', error)
-            copyFormValuesToClipboard(credentialLink)
-            showNotification('Link copied to clipboard as fallback', 'success')
-          }
-        }
-      }, 2000)
+      // Navigate to the mail route instead of creating mailto: link
+      const mailPageUrl = `${window.location.origin}/mail/${fileId}`
+      window.location.href = mailPageUrl
     }
   }
 
@@ -427,10 +391,7 @@ const SuccessPage: React.FC<SuccessPageProps> = ({
           {snackbar.message}
         </Alert>
       </Snackbar>
-      <LoadingOverlay
-        text='Saving credential. Patience is a virtue...'
-        open={fileId ? false : true}
-      />
+      <LoadingOverlay text='Saving credential. Patience is a virtue...' open={!fileId} />
     </Box>
   )
 }

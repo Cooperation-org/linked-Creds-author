@@ -1,20 +1,23 @@
-import { saveRaw } from './googleDrive' 
+import { saveRaw } from './googleDrive'
 
 interface ProcessResult {
-  success: boolean;
-  error?: string;
+  success: boolean
+  error?: string
   file?: {
-    id: string;
-  };
+    id: string
+  }
 }
 
-export async function importCredential(url: string, accessToken: string | undefined): Promise<ProcessResult> {
+export async function importCredential(
+  url: string,
+  accessToken: string | undefined
+): Promise<ProcessResult> {
   try {
     const response = await fetch(url)
     if (!response.ok) {
-      return { 
-        success: false, 
-        error: `Failed to fetch URL: ${response.statusText}` 
+      return {
+        success: false,
+        error: `Failed to fetch URL: ${response.statusText}`
       }
     }
 
@@ -25,7 +28,6 @@ export async function importCredential(url: string, accessToken: string | undefi
       success: true,
       file: file
     }
-    
   } catch (e) {
     return {
       success: false,
