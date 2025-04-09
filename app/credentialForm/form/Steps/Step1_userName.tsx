@@ -17,7 +17,6 @@ import { FormData } from '../types/Types'
 import { useSession } from 'next-auth/react'
 import { SVGSProfileName } from '../../../Assets/SVGs'
 import { StepTrackShape } from '../fromTexts & stepTrack/StepTrackShape'
-
 interface Step1Props {
   register: UseFormRegister<FormData>
   errors: FieldErrors<FormData>

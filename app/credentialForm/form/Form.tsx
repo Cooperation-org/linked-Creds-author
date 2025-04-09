@@ -3,25 +3,24 @@
 
 import React, { useEffect, useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
-import { FormControl, Box, Slide, Button } from '@mui/material'
+import { FormControl, Box, Slide, Button, Typography } from '@mui/material'
 import { FormData } from './types/Types'
 import { Step0 } from './Steps/Step0_connectToGoogle'
 import { Buttons } from './buttons/Buttons'
 import DataComponent from './Steps/dataPreview'
-import { SVGBack } from '../../Assets/SVGs'
 import { createDID, signCred } from '../../utils/signCred'
 import { GoogleDriveStorage, saveToGoogleDrive } from '@cooperation/vc-storage'
 import { useSession, signIn } from 'next-auth/react'
 import { handleSign } from '../../utils/formUtils'
 import { saveSession } from '../../utils/saveSession'
 import SnackMessage from '../../components/SnackMessage'
-import SessionDialog from '../../components/SessionDialog'
 import { useStepContext } from './StepContext'
 import SuccessPage from './Steps/SuccessPage'
 import FileUploadAndList from './Steps/Step3_uploadEvidence'
 import { Step1 } from './Steps/Step1_userName'
 import { Step2 } from './Steps/Step2_descreptionFields'
 import { storeFileTokens } from '../../firebase/storage'
+import CredentialTracker from '../../components/credetialTracker/Page'
 
 const Form = ({ onStepChange }: any) => {
   const { activeStep, handleNext, handleBack, setActiveStep, loading } = useStepContext()
@@ -221,7 +220,15 @@ const Form = ({ onStepChange }: any) => {
   }
 
   return (
-    <Box sx={{ m: { xs: '50px auto', sm: '50px auto', md: '120px auto' } }}>
+    <Box
+      sx={{
+        m: { xs: '50px auto', sm: '50px auto', md: '120px auto' },
+        display: 'flex',
+        gap: '90px',
+        alignItems: 'flex-start',
+        justifyContent: 'center'
+      }}
+    >
       <form
         style={{
           display: 'flex',
@@ -233,8 +240,7 @@ const Form = ({ onStepChange }: any) => {
           overflow: 'auto',
           width: '100%',
           maxWidth: '720px',
-          backgroundColor: '#FFF',
-          margin: 'auto'
+          backgroundColor: '#FFF'
         }}
         onSubmit={handleFormSubmit}
       >
@@ -351,6 +357,8 @@ const Form = ({ onStepChange }: any) => {
         )}
         {snackMessage ? <SnackMessage message={snackMessage} /> : ''}
       </form>
+
+      {activeStep >= 1 && <CredentialTracker formData={watch()} />}
     </Box>
   )
 }
