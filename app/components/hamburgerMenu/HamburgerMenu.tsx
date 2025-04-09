@@ -191,6 +191,51 @@ const HamburgerMenu = () => {
                     <ArrowForwardIosIcon fontSize='small' />
                   </Box>
                 </Link>
+                <Link href='/analytics' passHref style={{ width: '100%' }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%'
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start'
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '16px',
+                          fontWeight: isActive('/analytics') ? '600' : '400',
+                          color: isActive('/analytics') ? '#003FE0' : 'inherit',
+                          cursor: 'pointer',
+                          display: 'inline-block',
+                          position: 'relative',
+                          height: '22px'
+                        }}
+                      >
+                        Analytics
+                        {isActive('/analytics') && (
+                          <Box
+                            sx={{
+                              height: '2px',
+                              width: '100%',
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              backgroundColor: '#003FE0'
+                            }}
+                          />
+                        )}
+                      </Typography>
+                    </Box>
+                    <ArrowForwardIosIcon fontSize='small' />
+                  </Box>
+                </Link>
                 <Link href='/credentialImportForm' passHref style={{ width: '100%' }}>
                   <Box
                     sx={{
