@@ -116,6 +116,67 @@ const ViewClaimDialogContent: React.FC<ViewClaimDialogContentProps> = ({ fileID 
   )
 }
 
+const safeJSON = (v: string) => {
+  try {
+    const j = JSON.parse(v)
+    if (typeof j === 'string' && j.trim().startsWith('<')) return null
+    return j
+  } catch {
+    return null
+  }
+}
+
+const pickDriveIds = (url: string) => {
+  const re1 = /\/d\/([\w-]{10,})/
+  const re2 = /[?&]id=([\w-]{10,})/
+  const match = re1.exec(url) ?? re2.exec(url)
+  return match ? match[1] : null
+}
+
+const safeDelete = async (storage: any, fileId: string | null) => {
+  if (!fileId) return
+  try {
+    await storage.delete(fileId)
+  } catch (err: any) {
+    const msg: string = err?.message ?? ''
+    if (msg.includes('File not found') || msg.includes('Expected JSON')) return
+    throw err
+  }
+}
+
+const tearDown = async (storage: any, claim: any) => {
+  const fileId = claim.id?.id ?? ''
+  let parents
+  try {
+    parents = await storage.getFileParents(fileId)
+  } catch (err: any) {
+    const msg: string = err?.message ?? ''
+    if (!msg.includes('File not found')) throw err
+    parents = []
+  }
+  const folderId = parents?.[0] ?? null
+  let relationsId: string | null = null
+  if (folderId != null) {
+    try {
+      const kids = await storage.findFilesUnderFolder(folderId)
+      const r = kids.find((f: any) => f.name === 'RELATIONS')
+      relationsId = r?.id ?? null
+    } catch {}
+  }
+  await safeDelete(storage, fileId)
+  await safeDelete(storage, relationsId)
+  const data = safeJSON(claim.id.data?.body ?? '') ?? claim
+  const urls: string[] = []
+  data?.credentialSubject?.portfolio?.forEach((p: any) => urls.push(p.url))
+  if (data?.credentialSubject?.evidenceLink)
+    urls.push(data.credentialSubject.evidenceLink)
+  data?.credentialSubject?.achievement?.forEach((a: any) => {
+    if (a.image?.id) urls.push(a.image.id)
+  })
+  const ids = urls.map(pickDriveIds).filter(Boolean) as string[]
+  await Promise.all(ids.map((i: string) => safeDelete(storage, i)))
+}
+
 const withResolversPolyfill = <T,>() => {
   let resolve!: (value: T | PromiseLike<T>) => void
   let reject!: (reason?: any) => void
@@ -188,11 +249,10 @@ const ClaimsPageClient: React.FC = () => {
   const generateLinkedInUrl = (claim: any) => {
     const issuanceDate = new Date(claim.issuanceDate)
     const expirationDate = new Date(claim.expirationDate)
-
     const baseLinkedInUrl = 'https://www.linkedin.com/profile/add'
     const params = new URLSearchParams({
       startTask: 'CERTIFICATION_NAME',
-      name: claim.credentialSubject.achievement[0].name || 'Certification Name',
+      name: claim.credentialSubject.achievement?.[0]?.name ?? 'Certification Name',
       organizationName: 'Self-Issued',
       issueYear: issuanceDate.getFullYear().toString(),
       issueMonth: (issuanceDate.getMonth() + 1).toString(),
@@ -226,18 +286,15 @@ const ClaimsPageClient: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (!selectedClaim || !storage) return
-
     try {
       setIsDeleting(true)
       setShowOverlappingCards(true)
-      const fileId = selectedClaim.id.id
-
-      await storage.delete(fileId)
-
-      // Immediately update the UI by filtering out the deleted claim
-      setClaims(prevClaims => prevClaims.filter(claim => claim?.id !== selectedClaim.id))
-
-      // Reset all states
+      await tearDown(storage, selectedClaim)
+      setClaims(prevClaims => {
+        const updated = prevClaims.filter(claim => claim?.id !== selectedClaim.id)
+        localStorage.removeItem('vcs')
+        return updated
+      })
       setOpenDeleteDialog(false)
       setSelectedClaim(null)
       setDesktopMenuAnchorEl(null)
@@ -251,7 +308,7 @@ const ClaimsPageClient: React.FC = () => {
   }
 
   const getAllClaims = useCallback(async (): Promise<any> => {
-    // Check if we have cached VCs in localStorage
+    let claimsData: any[] = []
     const cachedVCs = localStorage.getItem('vcs')
     if (cachedVCs) {
       try {
@@ -259,39 +316,43 @@ const ClaimsPageClient: React.FC = () => {
         console.log('🚀 ~ getAllClaims ~ parsedVCs:', parsedVCs)
         if (Array.isArray(parsedVCs) && parsedVCs.length > 0) {
           console.log('Returning cached VCs from localStorage')
-          return parsedVCs
+          claimsData = parsedVCs
         }
       } catch (error) {
         console.error('Error parsing cached VCs from localStorage:', error)
       }
     }
-
-    // If no cache, fetch from storage
-    const claimsData = await storage?.getAllFilesByType('VCs')
-    if (!claimsData?.length) return []
-
-    const vcs = []
-    for (const file of claimsData) {
-      try {
-        const content = JSON.parse(file?.data?.body)
-
-        // Check if content exists and has @context property
-        if (content && '@context' in content) {
-          vcs.push({
-            ...content,
-            id: file
-          })
-        }
-      } catch (error) {
-        console.error(`Error processing file ${file}:`, error)
-        continue
-      }
+    if (claimsData.length > 0) {
+      return claimsData
     }
-
-    // Cache the fetched VCs in localStorage for future use
-    localStorage.setItem('vcs', JSON.stringify(vcs))
-
-    return vcs
+    try {
+      const driveFiles = await storage?.getAllFilesByType('VCs')
+      if (!driveFiles?.length) return []
+      const vcs = []
+      for (const file of driveFiles) {
+        try {
+          const content = JSON.parse(file?.data?.body)
+          if (content && '@context' in content) {
+            vcs.push({
+              ...content,
+              id: file
+            })
+          }
+        } catch (error) {
+          console.error(`Error processing file ${file}:`, error)
+          continue
+        }
+      }
+      localStorage.setItem('vcs', JSON.stringify(vcs))
+      return vcs
+    } catch (error) {
+      console.error('Error fetching claims from drive:', error)
+      const fallback = localStorage.getItem('vcs')
+      if (fallback) {
+        return JSON.parse(fallback)
+      }
+      return []
+    }
   }, [storage])
 
   useEffect(() => {
@@ -299,7 +360,6 @@ const ClaimsPageClient: React.FC = () => {
       try {
         setLoading(true)
         const claimsData = await getAllClaims()
-
         setClaims(claimsData)
       } catch (error) {
         console.error('Error fetching claims:', error)
@@ -307,7 +367,6 @@ const ClaimsPageClient: React.FC = () => {
         setLoading(false)
       }
     }
-
     fetchClaims()
   }, [getAllClaims])
 
