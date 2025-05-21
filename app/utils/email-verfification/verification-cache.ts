@@ -1,4 +1,4 @@
-export { verificationCache }
+
 import { LRUCache } from 'lru-cache'
 import nodemailer from 'nodemailer'
 
@@ -9,16 +9,17 @@ type VerificationEntry = {
   metadata?: Record<string, any>
 }
 
+// Create a singleton instance of the cache
 const verificationCache = new LRUCache<string, VerificationEntry>({
   max: 1000,
-  ttl: 1000 * 60 * 30, // Extended to 30 minutes
+  ttl: 1000 * 60 * 30, // 30 minutes
   allowStale: false,
   updateAgeOnGet: false
 })
 
 export function generateVerificationCode(): string {
-  // Generate a purely numeric 6-digit code (000000-999999)
-  return String(Math.floor(Math.random() * 1000000)).padStart(6, '0')
+  const code = String(Math.floor(Math.random() * 1000000)).padStart(6, '0')
+  return code
 }
 
 export function storeVerificationCode(
@@ -27,9 +28,6 @@ export function storeVerificationCode(
 ): string {
   const code = generateVerificationCode()
   const normalizedEmail = email.toLowerCase().trim()
-
-  // Log storage
-  console.log(`Storing verification code for email: ${normalizedEmail}`)
 
   verificationCache.set(normalizedEmail, {
     code,
@@ -51,43 +49,29 @@ export function verifyCode(
 } {
   const normalizedEmail = email.toLowerCase().trim()
 
-  // Add debug logging
-  console.log(`Verifying code for email: ${normalizedEmail}`)
-  console.log(`Cached entries: ${Array.from(verificationCache.keys()).join(', ')}`)
-
   const entry = verificationCache.get(normalizedEmail)
 
   if (!entry) {
-    console.log(`No entry found for email: ${normalizedEmail}`)
     return { isValid: false, error: 'No verification code found or code expired' }
   }
-
-  console.log(
-    `Found entry for ${normalizedEmail}: attempts=${entry.attempts}, code=${entry.code.substring(0, 2)}***`
-  )
 
   entry.attempts += 1
 
   if (entry.attempts > 3) {
+    console.log(`Too many attempts for ${normalizedEmail}, deleting entry`)
     verificationCache.delete(normalizedEmail)
     return { isValid: false, error: 'Too many verification attempts' }
   }
 
   verificationCache.set(normalizedEmail, entry)
 
-  // Log code comparison
-  console.log(
-    `Code comparison: expected=${entry.code}, received=${code}, match=${entry.code === code}`
-  )
+  const isValid = String(entry.code) === String(code)
 
-  // Both codes should be treated as strings, but make sure to compare them as strings
-  if (String(entry.code) !== String(code)) {
+  if (!isValid) {
     return { isValid: false, error: 'Invalid verification code' }
   }
 
-  verificationCache.delete(email.toLowerCase())
-
-  console.log(`Verification successful for ${normalizedEmail}`)
+  verificationCache.delete(normalizedEmail)
 
   return {
     isValid: true,
@@ -210,3 +194,6 @@ export async function sendVerificationEmail(
     }
   }
 }
+
+
+export { verificationCache }
