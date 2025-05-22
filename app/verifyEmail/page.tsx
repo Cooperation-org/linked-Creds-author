@@ -1,6 +1,9 @@
 'use client'
 
+import { useSession } from 'next-auth/react'
 import { useState } from 'react'
+import useGoogleDrive from '../hooks/useGoogleDrive'
+import { CredentialEngine } from '@cooperation/vc-storage'
 
 type VerificationState = 'idle' | 'sending' | 'sent' | 'verifying' | 'verified' | 'error'
 
@@ -9,6 +12,8 @@ export default function EmailVerification() {
   const [code, setCode] = useState('')
   const [state, setState] = useState<VerificationState>('idle')
   const [error, setError] = useState('')
+  const { data: session } = useSession()
+  const { storage } = useGoogleDrive()
 
   const sendVerificationCode = async () => {
     try {
@@ -18,10 +23,7 @@ export default function EmailVerification() {
       const response = await fetch('/api/verification/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          purpose: 'skill verification'
-        })
+        body: JSON.stringify({ email })
       })
 
       const data = await response.json()
@@ -32,6 +34,7 @@ export default function EmailVerification() {
 
       setState('sent')
     } catch (err) {
+      console.error('Error sending code:', err)
       setState('error')
       setError(err instanceof Error ? err.message : 'Unknown error')
     }
@@ -54,8 +57,20 @@ export default function EmailVerification() {
         throw new Error(data.error || 'Invalid verification code')
       }
 
+      if (!storage) {
+        throw new Error('Storage not initialized')
+      }
+
+      // Initialize credential engine with storage
+      const engine = new CredentialEngine(storage)
+
+      // Generate and sign email VC
+      const result = await engine.generateAndSignEmailVC(email)
+      console.log('Generated email VC:', result)
+
       setState('verified')
     } catch (err) {
+      console.error('Verification error:', err)
       setState('error')
       setError(err instanceof Error ? err.message : 'Unknown error')
     }
