@@ -4,6 +4,16 @@ import { useSession } from 'next-auth/react'
 import { useState } from 'react'
 import useGoogleDrive from '../hooks/useGoogleDrive'
 import { CredentialEngine } from '@cooperation/vc-storage'
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Alert,
+  CircularProgress
+} from '@mui/material'
 
 type VerificationState = 'idle' | 'sending' | 'sent' | 'verifying' | 'verified' | 'error'
 
@@ -29,7 +39,7 @@ export default function EmailVerification() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send verification code')
+        throw new Error(data.error ?? 'Failed to send verification code')
       }
 
       setState('sent')
@@ -54,18 +64,22 @@ export default function EmailVerification() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Invalid verification code')
+        throw new Error(data.error ?? 'Invalid verification code')
       }
 
       if (!storage) {
         throw new Error('Storage not initialized')
       }
 
+      if (!session?.user?.id) {
+        throw new Error('User session or ID not found. Unable to issue email VC.')
+      }
+
       // Initialize credential engine with storage
       const engine = new CredentialEngine(storage)
 
       // Generate and sign email VC
-      const result = await engine.generateAndSignEmailVC(email)
+      const result = await engine.generateAndSignEmailVC(email, session.user.id)
       console.log('Generated email VC:', result)
 
       setState('verified')
@@ -84,88 +98,114 @@ export default function EmailVerification() {
   }
 
   return (
-    <div className='max-w-md mx-auto p-6 bg-white rounded shadow-md'>
-      <h2 className='text-xl font-bold mb-4'>Email Verification</h2>
+    <Container maxWidth='sm' sx={{ mt: 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography
+          variant='h5'
+          component='h2'
+          gutterBottom
+          sx={{ fontWeight: 'bold', textAlign: 'center', mb: 3 }}
+        >
+          Email Verification
+        </Typography>
 
-      {state === 'idle' && (
-        <>
-          <div className='mb-4'>
-            <label className='block text-sm font-medium mb-1'>Email Address</label>
-            <input
+        {state === 'idle' && (
+          <Box component='form' noValidate autoComplete='off'>
+            <TextField
+              label='Email Address'
               type='email'
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className='w-full px-3 py-2 border rounded'
+              fullWidth
+              margin='normal'
               placeholder='your@email.com'
+              id='emailInput'
             />
-          </div>
-          <button
-            onClick={sendVerificationCode}
-            disabled={!email}
-            className='w-full bg-blue-500 text-white py-2 px-4 rounded'
-          >
-            Send Verification Code
-          </button>
-        </>
-      )}
+            <Button
+              onClick={sendVerificationCode}
+              disabled={!email}
+              variant='contained'
+              color='primary'
+              fullWidth
+              sx={{ mt: 2 }}
+            >
+              Send Verification Code
+            </Button>
+          </Box>
+        )}
 
-      {state === 'sending' && <p>Sending verification code...</p>}
+        {state === 'sending' && (
+          <Box sx={{ textAlign: 'center', my: 3 }}>
+            <CircularProgress sx={{ mb: 2 }} />
+            <Typography>Sending verification code...</Typography>
+          </Box>
+        )}
 
-      {state === 'sent' && (
-        <>
-          <p className='mb-4'>A verification code has been sent to {email}</p>
-          <div className='mb-4'>
-            <label className='block text-sm font-medium mb-1'>Verification Code</label>
-            <input
+        {state === 'sent' && (
+          <Box>
+            <Typography gutterBottom>
+              A verification code has been sent to{' '}
+              <Typography component='span' sx={{ fontWeight: 'bold' }}>
+                {email}
+              </Typography>
+            </Typography>
+            <TextField
+              label='Verification Code'
               type='text'
               value={code}
               onChange={e => setCode(e.target.value)}
-              className='w-full px-3 py-2 border rounded text-center tracking-wider'
+              fullWidth
+              margin='normal'
               placeholder='Enter code'
+              id='codeInput'
+              inputProps={{ style: { textAlign: 'center', letterSpacing: '0.2em' } }}
             />
-          </div>
-          <div className='flex space-x-2'>
-            <button
-              onClick={verifyCode}
-              disabled={!code}
-              className='flex-1 bg-green-500 text-white py-2 px-4 rounded'
-            >
-              Verify
-            </button>
-            <button onClick={reset} className='px-4 py-2 border rounded'>
-              Cancel
-            </button>
-          </div>
-        </>
-      )}
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Button
+                onClick={verifyCode}
+                disabled={!code}
+                variant='contained'
+                color='success'
+                sx={{ flexGrow: 1 }}
+              >
+                Verify
+              </Button>
+              <Button onClick={reset} variant='outlined' color='secondary'>
+                Cancel
+              </Button>
+            </Box>
+          </Box>
+        )}
 
-      {state === 'verifying' && <p>Verifying code...</p>}
+        {state === 'verifying' && (
+          <Box sx={{ textAlign: 'center', my: 3 }}>
+            <CircularProgress sx={{ mb: 2 }} />
+            <Typography>Verifying code...</Typography>
+          </Box>
+        )}
 
-      {state === 'verified' && (
-        <>
-          <div className='p-4 bg-green-100 text-green-800 rounded mb-4'>
-            Your email has been successfully verified!
-          </div>
-          <button
-            onClick={reset}
-            className='w-full bg-blue-500 text-white py-2 px-4 rounded'
-          >
-            Verify Another Email
-          </button>
-        </>
-      )}
+        {state === 'verified' && (
+          <Box sx={{ textAlign: 'center' }}>
+            <Alert severity='success' sx={{ mb: 2 }}>
+              Your email has been successfully verified!
+            </Alert>
+            <Button onClick={reset} variant='contained' color='primary' fullWidth>
+              Verify Another Email
+            </Button>
+          </Box>
+        )}
 
-      {state === 'error' && (
-        <>
-          <div className='p-4 bg-red-100 text-red-800 rounded mb-4'>{error}</div>
-          <button
-            onClick={reset}
-            className='w-full bg-blue-500 text-white py-2 px-4 rounded'
-          >
-            Try Again
-          </button>
-        </>
-      )}
-    </div>
+        {state === 'error' && (
+          <Box sx={{ textAlign: 'center' }}>
+            <Alert severity='error' sx={{ mb: 2, textAlign: 'left' }}>
+              {error}
+            </Alert>
+            <Button onClick={reset} variant='contained' color='primary' fullWidth>
+              Try Again
+            </Button>
+          </Box>
+        )}
+      </Paper>
+    </Container>
   )
 }
