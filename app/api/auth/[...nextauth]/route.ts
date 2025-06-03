@@ -9,6 +9,7 @@ declare module 'next-auth' {
     expires?: number
     error?: string
     user?: {
+      id?: string
       name?: string
       email?: string
       image?: string
@@ -21,6 +22,7 @@ declare module 'next-auth' {
     expires?: number
     error?: string
     user?: {
+      id?: string
       name?: string
       email?: string
       image?: string
@@ -58,6 +60,7 @@ const handler = NextAuth({
           refreshToken: account.refresh_token,
           expires: Date.now() + (account.expires_in as number) * 1000,
           user: {
+            id: user.id,
             name: user.name,
             email: user.email,
             image: user.image

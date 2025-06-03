@@ -4,7 +4,7 @@ import { rateLimit } from '../../../utils/email-verification/rate-limit'
 import { Resend } from 'resend'
 import { storeVerificationCode } from '../../../utils/email-verification/verification-store'
 
-const resend = new Resend(process.env.NEXT_PUBLIC_RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 const limiter = rateLimit({
   interval: 60 * 1000, // 1 minute
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // Generate verification code
     const code = Math.floor(100000 + Math.random() * 900000).toString()
-    
+
     // Store code in file-based cache
     storeVerificationCode(email, code)
 
@@ -62,10 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error in verification send:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
