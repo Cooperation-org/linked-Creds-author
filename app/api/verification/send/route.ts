@@ -4,8 +4,6 @@ import { rateLimit } from '../../../utils/email-verification/rate-limit'
 import { Resend } from 'resend'
 import { storeVerificationCode } from '../../../utils/email-verification/verification-store'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const limiter = rateLimit({
   interval: 60 * 1000, // 1 minute
   uniqueTokenPerInterval: 1000
@@ -32,6 +30,14 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      console.error('RESEND_API_KEY environment variable is not set')
+      return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
+    }
+
+    const resend = new Resend(apiKey)
 
     // Generate verification code
     const code = Math.floor(100000 + Math.random() * 900000).toString()
