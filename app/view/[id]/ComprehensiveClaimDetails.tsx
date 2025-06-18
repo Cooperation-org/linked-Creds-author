@@ -26,6 +26,7 @@ import { ExpandLess, ExpandMore } from '@mui/icons-material'
 import { GoogleDriveStorage } from '@cooperation/vc-storage'
 import EvidencePreview from './EvidencePreview'
 import { getAccessToken, getFileViaFirebase } from '../../firebase/storage'
+import QRCode from 'qrcode'
 // Define types
 interface Portfolio {
   name: string
@@ -83,8 +84,11 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
   const [comments, setComments] = useState<ClaimDetail[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
+  const [qrCodeDataUrlMobile, setQrCodeDataUrlMobile] = useState<string>('')
   const theme = useTheme()
   const isLargeScreen = useMediaQuery(theme.breakpoints.up('sm'))
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const accessToken = session?.accessToken
@@ -92,6 +96,41 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
   const isView = pathname?.includes('/view')
   const {} = useGoogleDrive()
   const [expandedComments, setExpandedComments] = useState<{ [key: string]: boolean }>({})
+
+  useEffect(() => {
+    if (fileID) {
+      const sourceUrl = `${window.location.origin}/api/credential-raw/${fileID}`
+      QRCode.toDataURL(sourceUrl, {
+        width: 120,
+        margin: 1,
+        color: {
+          dark: '#2563eb',
+          light: '#F0F4F8'
+        }
+      })
+        .then(url => {
+          setQrCodeDataUrl(url)
+        })
+        .catch(err => {
+          console.error('Error generating QR code:', err)
+        })
+      QRCode.toDataURL(sourceUrl, {
+        width: 80,
+        margin: 1,
+        color: {
+          dark: '#2563eb',
+          light: '#F0F4F8'
+        }
+      })
+        .then(url => {
+          setQrCodeDataUrlMobile(url)
+        })
+        .catch(err => {
+          console.error('Error generating mobile QR code:', err)
+        })
+    }
+  }, [fileID])
+
   useEffect(() => {
     if (!fileID) {
       setErrorMessage('Invalid claim ID.')
@@ -205,9 +244,53 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'flex-start',
-            justifyContent: isAskForRecommendation ? 'center' : 'flex-start'
+            justifyContent: isAskForRecommendation ? 'center' : 'flex-start',
+            position: 'relative'
           }}
         >
+          {fileID && !isMobile && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: '12px',
+                zIndex: 1
+              }}
+            >
+              <Link
+                href={`/api/credential-raw/${fileID}`}
+                target='_blank'
+                style={{ textDecoration: 'none' }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    fontFamily: 'Lato',
+                    color: '#003FE0',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      textDecoration: 'none'
+                    }
+                  }}
+                >
+                  View Source
+                </Typography>
+              </Link>
+              {qrCodeDataUrl && (
+                <img
+                  src={qrCodeDataUrl}
+                  alt='QR Code for credential source'
+                  style={{ width: '120px', height: '120px' }}
+                />
+              )}
+            </Box>
+          )}
           {isAskForRecommendation && (
             <Box
               sx={{
@@ -425,6 +508,73 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
           </Box>
         </Box>
       )}
+
+      {fileID && isMobile && (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            mt: '16px',
+            p: '16px',
+            border: '1px solid #E0E7FF',
+            borderRadius: '8px',
+            backgroundColor: '#F8FAFC'
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: '14px',
+              fontWeight: 600,
+              fontFamily: 'Lato',
+              color: '#64748B',
+              textAlign: 'center'
+            }}
+          >
+            Scan QR code or click to view credential source
+          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            {qrCodeDataUrlMobile && (
+              <img
+                src={qrCodeDataUrlMobile}
+                alt='QR Code for credential source'
+                style={{ width: '80px', height: '80px' }}
+              />
+            )}
+            <Link
+              href={`/api/credential-raw/${fileID}`}
+              target='_blank'
+              style={{ textDecoration: 'none' }}
+            >
+              <Typography
+                sx={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  fontFamily: 'Lato',
+                  color: '#003FE0',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    textDecoration: 'none'
+                  }
+                }}
+              >
+                View Source
+              </Typography>
+            </Link>
+          </Box>
+        </Box>
+      )}
+
       {/* Comments Section */}
       {(isView || !!propFileID) && claimDetail && (
         <Box>
