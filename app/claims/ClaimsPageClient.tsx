@@ -289,10 +289,10 @@ const ClaimsPageClient: React.FC = () => {
     try {
       setIsDeleting(true)
       setShowOverlappingCards(true)
-      localStorage.removeItem('vcs')
       await tearDown(storage, selectedClaim)
       setClaims(prevClaims => {
         const updated = prevClaims.filter(claim => claim?.id !== selectedClaim.id)
+        localStorage.removeItem('vcs')
         return updated
       })
       setOpenDeleteDialog(false)
