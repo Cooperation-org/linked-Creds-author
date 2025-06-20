@@ -14,6 +14,7 @@ interface StepContextType {
   setActiveStep: (step: number) => void
   handleNext: () => Promise<void>
   handleBack: () => void
+  handleSkip: () => void
   setUploadImageFn: (fn: () => Promise<void>) => void
 }
 
@@ -23,6 +24,7 @@ const StepContext = createContext<StepContextType>({
   setActiveStep: () => {},
   handleNext: async () => {},
   handleBack: () => {},
+  handleSkip: () => {},
   setUploadImageFn: () => () => {}
 })
 
@@ -103,6 +105,10 @@ export const StepProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveStep(prevStep => (prevStep > 0 ? prevStep - 1 : 0))
   }, [])
 
+  const handleSkip = useCallback(() => {
+    setActiveStep(prevStep => prevStep + 1)
+  }, [])
+
   const contextValue = useMemo(
     () => ({
       activeStep,
@@ -110,9 +116,10 @@ export const StepProvider = ({ children }: { children: React.ReactNode }) => {
       handleNext,
       handleBack,
       setUploadImageFn,
-      loading
+      loading,
+      handleSkip
     }),
-    [activeStep, handleNext, handleBack, setUploadImageFn, loading]
+    [activeStep, handleNext, handleBack, setUploadImageFn, loading, handleSkip]
   )
 
   return <StepContext.Provider value={contextValue}>{children}</StepContext.Provider>

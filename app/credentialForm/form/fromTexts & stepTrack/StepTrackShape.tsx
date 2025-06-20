@@ -7,7 +7,7 @@ import { SVGBack, SVGCompleteStep } from '../../../Assets/SVGs'
 import { useSession } from 'next-auth/react'
 
 export function StepTrackShape() {
-  const { activeStep, setActiveStep, handleBack, handleNext } = useStepContext()
+  const { activeStep, setActiveStep, handleBack, handleSkip } = useStepContext()
   const [openSnackbar, setOpenSnackbar] = useState(false)
   const { data: session } = useSession()
   const accessToken = session?.accessToken
@@ -116,7 +116,7 @@ export function StepTrackShape() {
 
       {activeStep === 3 && (
         <Button
-          onClick={handleNext}
+          onClick={handleSkip}
           sx={{ textTransform: 'capitalize', p: '0', mr: '5px' }}
         >
           Skip
