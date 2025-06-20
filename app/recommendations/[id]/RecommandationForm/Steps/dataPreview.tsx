@@ -28,6 +28,7 @@ interface DataPreviewProps {
   handleSign: () => void
   isLoading: boolean
   onUpdateFormData: (newData: any) => void
+  selectedFiles?: any[]
 }
 
 const cleanHTML = (htmlContent: any): string => {
@@ -180,7 +181,8 @@ const EditableCard = ({
 const DataPreview: React.FC<DataPreviewProps> = ({
   formData,
   isLoading,
-  onUpdateFormData
+  onUpdateFormData,
+  selectedFiles = []
 }) => {
   const handleUpdateField = (field: keyof FormData, value: string) => {
     onUpdateFormData({
@@ -258,49 +260,91 @@ const DataPreview: React.FC<DataPreviewProps> = ({
           />
         )}
 
-        {Array.isArray(formData.portfolio) &&
-          formData.portfolio.filter(item => item.name || item.url).length > 0 && (
-            <Card
-              variant='outlined'
+        {(Array.isArray(formData.portfolio) &&
+          formData.portfolio.filter(item => item.name || item.url).length > 0) ||
+        selectedFiles.length > 0 ? (
+          <Card
+            variant='outlined'
+            sx={{
+              p: '10px',
+              border: '1px solid #003fe0',
+              borderRadius: '10px'
+            }}
+          >
+            <Typography
+              variant='subtitle1'
               sx={{
-                p: '10px',
-                border: '1px solid #003fe0',
-                borderRadius: '10px'
+                fontWeight: 'bold',
+                fontSize: '15px',
+                letterSpacing: '0.01em'
               }}
             >
-              <Typography
-                variant='subtitle1'
+              Supporting Evidence
+            </Typography>
+            {selectedFiles.length > 0 && (
+              <Box
                 sx={{
-                  fontWeight: 'bold',
-                  fontSize: '15px',
-                  letterSpacing: '0.01em'
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '15px',
+                  mt: 2,
+                  mb: 2
                 }}
               >
-                Supporting Evidence
-              </Typography>
-              {formData.portfolio
-                .filter(item => item.name || item.url)
-                .map((item, index) => (
-                  <Box key={`portfolio-item-${index}`} sx={{ mt: 1 }}>
-                    {item.name && item.url ? (
-                      <Link
-                        href={item.url}
-                        underline='hover'
-                        color='primary'
-                        sx={{
-                          fontSize: '15px',
-                          textDecoration: 'underline',
-                          color: '#003fe0'
-                        }}
-                        target='_blank'
-                      >
-                        {item.name}
-                      </Link>
-                    ) : null}
+                {selectedFiles.map(file => (
+                  <Box
+                    key={file.id}
+                    sx={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border: '1px solid #e0e0e0',
+                      '&:hover': {
+                        transform: 'scale(1.05)',
+                        transition: 'transform 0.2s'
+                      }
+                    }}
+                    onClick={() => window.open(file.url, '_blank')}
+                  >
+                    <img
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                      src={file.url}
+                      alt={file.name}
+                    />
                   </Box>
                 ))}
-            </Card>
-          )}
+              </Box>
+            )}
+
+            {formData.portfolio
+              ?.filter(item => item.name || item.url)
+              .map((item, index) => (
+                <Box key={`portfolio-item-${index}`} sx={{ mt: 1 }}>
+                  {item.name && item.url ? (
+                    <Link
+                      href={item.url}
+                      underline='hover'
+                      color='primary'
+                      sx={{
+                        fontSize: '15px',
+                        textDecoration: 'underline',
+                        color: '#003fe0'
+                      }}
+                      target='_blank'
+                    >
+                      {item.name}
+                    </Link>
+                  ) : null}
+                </Box>
+              ))}
+          </Card>
+        ) : null}
       </Box>
 
       <LoadingOverlay text='Saving your recommendation...' open={isLoading} />

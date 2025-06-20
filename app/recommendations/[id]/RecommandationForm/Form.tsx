@@ -292,6 +292,7 @@ const Form: React.FC<FormProps> = ({ fullName, email }) => {
                 handleSign={handleFormSubmit}
                 isLoading={isLoading}
                 onUpdateFormData={handleUpdateFormData}
+                selectedFiles={selectedFiles}
               />
             )}
             {activeStep === 4 && (

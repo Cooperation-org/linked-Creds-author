@@ -104,7 +104,7 @@ const Step2: React.FC<Step2Props> = ({
           </FormLabel>
 
           <Controller
-            name='credentialName'
+            name='howKnow'
             control={control}
             rules={{ required: 'Relationship is required' }}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
@@ -149,13 +149,13 @@ const Step2: React.FC<Step2Props> = ({
 
         <Box>
           <Typography sx={formLabelStyles} id='recommendation-text-label'>
-            write your recommendation here to support or confirm the requestor’s skill
-            claims.
+            write your recommendation here to support or confirm the requestor&apos;s
+            skill claims.
           </Typography>
           <TextEditor
             value={watch('recommendationText') || ''}
             onChange={handleEditorChange('recommendationText')}
-            placeholder={`I’ve worked with ${displayName} for about two years, managing her at The Coffee Place. She is an excellent worker, prompt, and applies the skills she learned in Barista training on a daily basis. —This is just an example of how the recommendation might begin.`}
+            placeholder={`I&apos;ve worked with ${displayName} for about two years, managing her at The Coffee Place. She is an excellent worker, prompt, and applies the skills she learned in Barista training on a daily basis. —This is just an example of how the recommendation might begin.`}
           />
           {errors.recommendationText && (
             <Typography color='error'>{errors.recommendationText.message}</Typography>

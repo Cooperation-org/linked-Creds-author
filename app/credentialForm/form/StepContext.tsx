@@ -86,7 +86,14 @@ export const StepProvider = ({ children }: { children: React.ReactNode }) => {
   }, [activeStep, excludedPaths])
 
   const handleNext = useCallback(async () => {
-    if (activeStep === 3 && typeof uploadImageFn === 'function') {
+    const pathname = window.location.pathname
+    const isRecommendationForm = pathname.includes('/recommendations/')
+    const isCredentialForm = pathname.includes('/credentialForm')
+
+    const shouldTriggerUpload =
+      (isCredentialForm && activeStep === 3) || (isRecommendationForm && activeStep === 2)
+
+    if (shouldTriggerUpload && typeof uploadImageFn === 'function') {
       setLoading(true) // Start loading
       try {
         await uploadImageFn() // Wait for image upload to complete
