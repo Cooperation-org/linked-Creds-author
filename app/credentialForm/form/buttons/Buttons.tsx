@@ -7,6 +7,7 @@ interface ButtonsProps {
   activeStep: number
   handleBack: React.MouseEventHandler<HTMLButtonElement> | undefined
   handleNext: React.MouseEventHandler<HTMLButtonElement> | undefined
+  handleSkip?: React.MouseEventHandler<HTMLButtonElement> | undefined
   handleSign: React.MouseEventHandler<HTMLButtonElement> | undefined
   isValid: boolean
   handleSaveSession: () => void
@@ -19,7 +20,8 @@ export function Buttons({
   handleSign,
   isValid,
   handleSaveSession,
-  loading
+  loading,
+  handleSkip
 }: Readonly<ButtonsProps>) {
   return (
     <Box
@@ -42,7 +44,7 @@ export function Buttons({
         </Button>
       )}
       {activeStep === 3 && (
-        <Button variant='finishButton' onClick={handleNext} color='secondary'>
+        <Button variant='finishButton' onClick={handleSkip} color='secondary'>
           Skip
         </Button>
       )}

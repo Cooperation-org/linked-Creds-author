@@ -23,7 +23,8 @@ import { storeFileTokens } from '../../firebase/storage'
 import CredentialTracker from '../../components/credetialTracker/Page'
 
 const Form = ({ onStepChange }: any) => {
-  const { activeStep, handleNext, handleBack, setActiveStep, loading } = useStepContext()
+  const { activeStep, handleNext, handleBack, setActiveStep, loading, handleSkip } =
+    useStepContext()
   const [prevStep, setPrevStep] = useState(0)
   const [link, setLink] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
@@ -337,6 +338,7 @@ const Form = ({ onStepChange }: any) => {
           <Buttons
             activeStep={activeStep}
             handleNext={activeStep === 0 ? costumedHandleNextStep : () => handleNext()}
+            handleSkip={handleSkip}
             handleSign={() => handleSign(activeStep, setActiveStep, handleFormSubmit)}
             handleBack={costumedHandleBackStep}
             isValid={isValid}
