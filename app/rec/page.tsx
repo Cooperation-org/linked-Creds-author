@@ -8,10 +8,94 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
+import NextLink from 'next/link'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import { styled } from '@mui/material/styles'
-import { Button, CircularProgress, Snackbar, Alert, Tooltip } from '@mui/material'
+import { styled, useTheme } from '@mui/material/styles'
+import {
+  Button,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Tooltip,
+  useMediaQuery
+} from '@mui/material'
 import { getFileViaFirebase } from '../firebase/storage'
+import QRCode from 'qrcode'
+
+const getDirectGoogleDriveUrl = (url: string): string => {
+  try {
+    const urlObject = new URL(url)
+    if (urlObject.hostname === 'drive.google.com') {
+      const fileIdMatch = url.match(/id=([^&]+)/)
+      if (fileIdMatch && fileIdMatch[1]) {
+        return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}`
+      }
+    }
+  } catch (e) {}
+  return url
+}
+
+const isImage = (fileName: string) => /\.(jpg|jpeg|png|gif)$/i.test(fileName)
+const isPDF = (fileName: string) => /\.pdf$/i.test(fileName)
+const isVideo = (fileName: string) => /\.(mp4|webm|ogg)$/i.test(fileName)
+
+const EvidencePreview = ({ url, name }: { url: string; name: string }) => {
+  if (isImage(name)) {
+    const imageUrl = getDirectGoogleDriveUrl(url)
+    return (
+      <img
+        src={imageUrl}
+        alt={name}
+        style={{
+          width: '100%',
+          maxWidth: '200px',
+          height: 'auto',
+          objectFit: 'cover',
+          borderRadius: '8px'
+        }}
+      />
+    )
+  }
+
+  if (isPDF(name)) {
+    return (
+      <Link href={url} target='_blank' rel='noopener noreferrer' underline='hover'>
+        <img
+          src={'/fallback-pdf-thumbnail.svg'}
+          alt='PDF thumbnail'
+          style={{ width: '100px', height: 'auto', cursor: 'pointer' }}
+        />
+        <Typography variant='body2' sx={{ mt: 1 }}>
+          {name}
+        </Typography>
+      </Link>
+    )
+  }
+
+  if (isVideo(name)) {
+    return (
+      <div>
+        <video
+          controls
+          src={url}
+          style={{ width: '100%', maxWidth: '300px', borderRadius: '8px' }}
+          poster={'/fallback-video.png'}
+        >
+          Your browser does not support the video tag.
+        </video>
+        <Typography variant='body2' sx={{ mt: 1 }}>
+          {name}
+        </Typography>
+      </div>
+    )
+  }
+
+  return (
+    <Link href={url} target='_blank' rel='noopener noreferrer' underline='hover'>
+      {name}
+    </Link>
+  )
+}
 
 interface AlertState {
   open: boolean
@@ -24,7 +108,7 @@ interface RecommendationData {
   howKnow: any
   name: string
   qualifications: string
-  portfolio: Array<{ title: string; url: string }>
+  portfolio: Array<{ name: string; url: string }>
 }
 
 const Page = () => {
@@ -42,6 +126,10 @@ const Page = () => {
   const [rejectLoading, setRejectLoading] = useState(false)
   const [recId, setRecId] = useState<string | null>(null)
   const [vcId, setVcId] = useState<string | null>(null)
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
+  const [qrCodeDataUrlMobile, setQrCodeDataUrlMobile] = useState<string>('')
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const SectionTitle = styled(Typography)(({ theme }) => ({
     fontSize: '0.875rem',
@@ -72,8 +160,41 @@ const Page = () => {
   }
 
   useEffect(() => {
-    setRecId(getQueryParams('recId'))
+    const fileId = getQueryParams('recId')
+    setRecId(fileId)
     setVcId(getQueryParams('vcId'))
+    if (fileId) {
+      const sourceUrl = `${window.location.origin}/api/credential-raw/${fileId}`
+      QRCode.toDataURL(sourceUrl, {
+        width: 120,
+        margin: 1,
+        color: {
+          dark: '#2563eb',
+          light: '#F0F4F8'
+        }
+      })
+        .then((url: string) => {
+          setQrCodeDataUrl(url)
+        })
+        .catch((err: any) => {
+          console.error('Error generating QR code:', err)
+        })
+
+      QRCode.toDataURL(sourceUrl, {
+        width: 80,
+        margin: 1,
+        color: {
+          dark: '#2563eb',
+          light: '#F0F4F8'
+        }
+      })
+        .then((url: string) => {
+          setQrCodeDataUrlMobile(url)
+        })
+        .catch((err: any) => {
+          console.error('Error generating mobile QR code:', err)
+        })
+    }
   }, [])
   useEffect(() => {
     if (typeof window !== 'undefined' && recId) {
@@ -368,6 +489,44 @@ const Page = () => {
               bgcolor: 'background.paper',
               '& .MuiCardHeader-content': {}
             }}
+            action={
+              recId && (
+                <Box
+                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                >
+                  <NextLink
+                    href={`/api/credential-raw/${recId}`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <Typography
+                      sx={{
+                        color: '#003FE0',
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          textDecoration: 'none'
+                        }
+                      }}
+                    >
+                      View Source
+                    </Typography>
+                  </NextLink>
+                  {qrCodeDataUrl && (
+                    <img
+                      src={isMobile ? qrCodeDataUrlMobile : qrCodeDataUrl}
+                      alt='QR Code for credential source'
+                      style={{
+                        width: isMobile ? '80px' : '120px',
+                        height: isMobile ? '80px' : '120px',
+                        marginTop: '8px'
+                      }}
+                    />
+                  )}
+                </Box>
+              )
+            }
             avatar={
               <CheckCircleIcon
                 sx={{
@@ -419,16 +578,11 @@ const Page = () => {
                 <SectionTitle>Supporting Evidence</SectionTitle>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   {recommendation.portfolio.map((evidence, index) => (
-                    <Link
+                    <EvidencePreview
                       key={`evidence-${index}-${evidence.url}`}
-                      href={evidence.url}
-                      underline='hover'
-                      color='primary'
-                      target='_blank'
-                      rel='noopener noreferrer'
-                    >
-                      {evidence.title}
-                    </Link>
+                      url={evidence.url}
+                      name={evidence.name}
+                    />
                   ))}
                 </Box>
               </ContentSection>
