@@ -94,6 +94,7 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
   const accessToken = session?.accessToken
   const isAskForRecommendation = pathname?.includes('/askforrecommendation')
   const isView = pathname?.includes('/view')
+  const isRecommendationsPage = pathname?.includes('/recommendations/')
   const {} = useGoogleDrive()
   const [expandedComments, setExpandedComments] = useState<{ [key: string]: boolean }>({})
 
@@ -229,8 +230,10 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
   }, 2000)
   const credentialSubject = claimDetail?.credentialSubject
   const achievement = credentialSubject?.achievement && credentialSubject.achievement[0]
-  const hasValidEvidence =
-    credentialSubject?.portfolio && credentialSubject?.portfolio.length > 0
+  const validPortfolio = Array.isArray(credentialSubject?.portfolio)
+    ? credentialSubject.portfolio.filter(item => item && item.name && item.url)
+    : []
+  const hasValidEvidence = validPortfolio.length > 0
   return (
     <Container sx={{ maxWidth: '800px' }}>
       {claimDetail && (
@@ -366,10 +369,10 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
                   <Box
                     sx={{
                       display: 'flex',
-                      flexDirection: isLargeScreen ? 'row' : 'column',
-                      gap: '20px',
+                      justifyContent: 'center',
+                      alignItems: 'center',
                       my: '10px',
-                      justifyContent: 'center'
+                      width: '100%'
                     }}
                   >
                     <EvidencePreview
@@ -388,7 +391,10 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
                         fontSize: '17px',
                         letterSpacing: '0.075px',
                         lineHeight: '24px',
-                        mt: 2
+                        mt: 2,
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-line',
+                        overflowWrap: 'anywhere'
                       }}
                     >
                       <span
@@ -403,7 +409,13 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
                   <Box sx={{ mt: 2 }}>
                     <Typography>What does that entail?:</Typography>
                     <ul style={{ marginLeft: '25px' }}>
-                      <li>
+                      <li
+                        style={{
+                          wordBreak: 'break-word',
+                          whiteSpace: 'pre-line',
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
                         <span
                           dangerouslySetInnerHTML={{
                             __html: cleanHTML(achievement?.criteria?.narrative)
@@ -425,7 +437,7 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
                         color: 'blue'
                       }}
                     >
-                      {credentialSubject?.portfolio?.map((portfolioItem, idx) => (
+                      {validPortfolio.map((portfolioItem, idx) => (
                         <li
                           key={`main-portfolio-${idx}`}
                           style={{
@@ -476,35 +488,44 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
                 </Link>
               </Box>
             )} */}
-            {(pathname?.includes('/view') || !!propFileID) && claimDetail && (
-              <Box
-                sx={{ display: 'flex', flexDirection: 'column', gap: '4px', mt: '20px' }}
-              >
-                <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#000E40' }}>
-                  Credential Details
-                </Typography>
+            {(pathname?.includes('/view') || !!propFileID) &&
+              claimDetail &&
+              !isRecommendationsPage && (
                 <Box
-                  sx={{ display: 'flex', gap: '5px', mt: '10px', alignItems: 'center' }}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    mt: '20px'
+                  }}
                 >
-                  <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
-                    <CheckMarkSVG />
+                  <Typography
+                    sx={{ fontSize: '13px', fontWeight: 700, color: '#000E40' }}
+                  >
+                    Credential Details
+                  </Typography>
+                  <Box
+                    sx={{ display: 'flex', gap: '5px', mt: '10px', alignItems: 'center' }}
+                  >
+                    <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
+                      <CheckMarkSVG />
+                    </Box>
+                    <Typography>Has a valid digital signature</Typography>
                   </Box>
-                  <Typography>Has a valid digital signature</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
-                    <CheckMarkSVG />
+                  <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                    <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
+                      <CheckMarkSVG />
+                    </Box>
+                    <Typography>Has not expired</Typography>
                   </Box>
-                  <Typography>Has not expired</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
-                    <CheckMarkSVG />
+                  <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                    <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
+                      <CheckMarkSVG />
+                    </Box>
+                    <Typography>Has not been revoked by issuer</Typography>
                   </Box>
-                  <Typography>Has not been revoked by issuer</Typography>
                 </Box>
-              </Box>
-            )}
+              )}
           </Box>
         </Box>
       )}
@@ -576,7 +597,7 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
       )}
 
       {/* Comments Section */}
-      {(isView || !!propFileID) && claimDetail && (
+      {(isView || !!propFileID) && claimDetail && !isRecommendationsPage && (
         <Box>
           {loading ? (
             <Box display='flex' justifyContent='center' my={2}>
@@ -737,30 +758,32 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
               ))}
             </List>
           ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '10px',
-                mb: '20px'
-              }}
-            >
-              <Typography variant='body2'>No recommendations available.</Typography>
-              <Link href={`/askforrecommendation/${fileID}`}>
-                <Button
-                  variant='contained'
-                  sx={{
-                    backgroundColor: '#003FE0',
-                    textTransform: 'none',
-                    borderRadius: '100px',
-                    width: { xs: 'fit-content', sm: '300px', md: '300px' }
-                  }}
-                >
-                  Ask for Recommendation
-                </Button>
-              </Link>
-            </Box>
+            !isRecommendationsPage && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px',
+                  mb: '20px'
+                }}
+              >
+                <Typography variant='body2'>No recommendations available.</Typography>
+                <Link href={`/askforrecommendation/${fileID}`}>
+                  <Button
+                    variant='contained'
+                    sx={{
+                      backgroundColor: '#003FE0',
+                      textTransform: 'none',
+                      borderRadius: '100px',
+                      width: { xs: 'fit-content', sm: '300px', md: '300px' }
+                    }}
+                  >
+                    Ask for Recommendation
+                  </Button>
+                </Link>
+              </Box>
+            )
           )}
         </Box>
       )}
