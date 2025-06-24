@@ -161,7 +161,10 @@ const EditableCard = ({
                   fontSize: '15px',
                   lineHeight: '24px',
                   color: isQuote ? '#202e5b' : '#000e40',
-                  letterSpacing: '0.01em'
+                  letterSpacing: '0.01em',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'pre-line',
+                  overflowWrap: 'anywhere'
                 }}
               >
                 <span

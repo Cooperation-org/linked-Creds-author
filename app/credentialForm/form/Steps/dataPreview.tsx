@@ -167,7 +167,14 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
             {formData.credentialName}
           </Typography>
           {formData.credentialDescription && (
-            <Box sx={commonTypographyStyles}>
+            <Box
+              sx={{
+                ...commonTypographyStyles,
+                wordBreak: 'break-word',
+                whiteSpace: 'pre-line',
+                overflowWrap: 'anywhere'
+              }}
+            >
               <span
                 dangerouslySetInnerHTML={{
                   __html: cleanHTML(formData.credentialDescription)
@@ -234,7 +241,14 @@ const DataPreview: React.FC<DataPreviewProps> = ({ formData, selectedFiles }) =>
           )}
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <Typography sx={commonTypographyStyles}>
+          <Typography
+            sx={{
+              ...commonTypographyStyles,
+              wordBreak: 'break-word',
+              whiteSpace: 'pre-line',
+              overflowWrap: 'anywhere'
+            }}
+          >
             <span
               dangerouslySetInnerHTML={{
                 __html: cleanHTML(formData?.description as string)

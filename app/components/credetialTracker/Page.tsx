@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Box,
   Typography,
@@ -11,6 +11,8 @@ import {
 } from '@mui/material'
 import { FormData } from '../../credentialForm/form/types/Types'
 import { Logo } from '../../Assets/SVGs'
+import Image from 'next/image'
+import { commonTypographyStyles, evidenceListStyles } from '../Styles/appStyles'
 
 // Styled components
 const HeaderContainer = styled(Paper)(({ theme }) => ({
@@ -60,7 +62,10 @@ const FieldValue = styled(Typography)(({ theme }) => ({
   fontWeight: 400,
   lineHeight: '24px',
   color: '#6b7280',
-  letterSpacing: '0.08px'
+  letterSpacing: '0.08px',
+  wordBreak: 'break-word',
+  whiteSpace: 'pre-line',
+  overflowWrap: 'anywhere'
 }))
 
 const MediaContainer = styled(Box)(({ theme }) => ({
@@ -72,22 +77,15 @@ const MediaContainer = styled(Box)(({ theme }) => ({
   flexDirection: 'column'
 }))
 
-const IconImage = styled('div')({
-  width: '38px',
-  height: '38px',
-  backgroundImage:
-    'url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-04-09/PnoGJMohCj.png)',
-  backgroundSize: 'cover',
-  backgroundRepeat: 'no-repeat'
-})
-
-const SkillMedia = styled('div')({
+const Media = styled(Box)({
   width: '160.506px',
   height: '153.129px',
-  backgroundImage:
-    'url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-04-09/usRRv5nxOd.png)',
+  position: 'relative',
+  backgroundImage: 'url(/images/SkillMedia.svg)',
   backgroundSize: '100% 100%',
-  backgroundRepeat: 'no-repeat'
+  backgroundRepeat: 'no-repeat',
+  overflow: 'hidden',
+  margin: '0 auto'
 })
 
 // Field component for consistent styling
@@ -115,6 +113,22 @@ interface CredentialTrackerProps {
 }
 
 const CredentialTracker: React.FC<CredentialTrackerProps> = ({ formData }) => {
+  // Helper for Evidence section
+  const isGoogleDriveImageUrl = (url: string): boolean => {
+    return /https:\/\/drive\.google\.com\/uc\?export=view&id=.+/.test(url)
+  }
+  const shouldDisplayUrl = (url: string): boolean => {
+    return !isGoogleDriveImageUrl(url)
+  }
+  const handleNavigate = (url: string, target: string = '_blank') => {
+    window.open(url, target)
+  }
+  const hasValidEvidence =
+    (formData?.portfolio &&
+      Array.isArray(formData.portfolio) &&
+      formData.portfolio.some((p: any) => p.name && p.url)) ||
+    (formData?.evidenceLink && shouldDisplayUrl(formData.evidenceLink))
+
   return (
     <Box sx={{ p: 0, width: '100%', maxWidth: '720px' }}>
       <Box
@@ -170,9 +184,33 @@ const CredentialTracker: React.FC<CredentialTrackerProps> = ({ formData }) => {
                     value={formData?.credentialDescription as string}
                     isHtml={true}
                   />
-
+                  {/* Media Section using Next.js Image */}
                   <MediaContainer>
-                    <SkillMedia />
+                    <Media>
+                      {formData?.evidenceLink ? (
+                        <Image
+                          src={formData.evidenceLink}
+                          alt='Featured Media'
+                          width={160}
+                          height={153}
+                          style={{
+                            borderRadius: '10px',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      ) : (
+                        <Image
+                          src='/images/SkillMedia.svg'
+                          alt='Media placeholder'
+                          width={160}
+                          height={153}
+                          style={{
+                            borderRadius: '10px',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      )}
+                    </Media>
                     <Typography
                       sx={{
                         fontFamily: 'Inter',
@@ -188,20 +226,59 @@ const CredentialTracker: React.FC<CredentialTrackerProps> = ({ formData }) => {
                     </Typography>
                   </MediaContainer>
 
+                  {/* Evidence Section (matches dataPreview.tsx) */}
+                  {hasValidEvidence && (
+                    <Box sx={commonTypographyStyles}>
+                      <FieldLabel sx={{ display: 'block' }}>
+                        Supporting Documentation:
+                      </FieldLabel>
+                      <ul style={evidenceListStyles}>
+                        {formData.evidenceLink &&
+                          shouldDisplayUrl(formData.evidenceLink) && (
+                            <li
+                              style={{
+                                cursor: 'pointer',
+                                width: 'fit-content',
+                                color: '#003fe0',
+                                textDecoration: 'underline'
+                              }}
+                              key={formData.evidenceLink}
+                              onClick={() =>
+                                handleNavigate(formData.evidenceLink, '_blank')
+                              }
+                            >
+                              {formData.evidenceLink}
+                            </li>
+                          )}
+                        {Array.isArray(formData.portfolio) &&
+                          formData.portfolio.map(
+                            (porto: { name: string; url: string }) =>
+                              porto.name &&
+                              porto.url && (
+                                <li
+                                  style={{
+                                    cursor: 'pointer',
+                                    width: 'fit-content',
+                                    color: '#003fe0',
+                                    textDecoration: 'underline'
+                                  }}
+                                  key={porto.url}
+                                  onClick={() => handleNavigate(porto.url, '_blank')}
+                                >
+                                  {porto.name || porto.url}
+                                </li>
+                              )
+                          )}
+                      </ul>
+                    </Box>
+                  )}
+
                   <Field
                     label='Earning Criteria'
                     value={formData?.description as string}
                     isHtml={true}
                   />
                   <Field label='Duration' value={formData?.credentialDuration} />
-                  <Field
-                    label='Supporting Documentation'
-                    value={
-                      formData?.evidenceLink || formData?.portfolio?.length
-                        ? 'Provided'
-                        : undefined
-                    }
-                  />
                 </Box>
               </CardContent>
             </SkillCard>

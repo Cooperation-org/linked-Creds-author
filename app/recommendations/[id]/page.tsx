@@ -8,6 +8,7 @@ import { useStepContext } from '../../credentialForm/form/StepContext'
 import useGoogleDrive from '../../hooks/useGoogleDrive'
 import { useParams } from 'next/navigation'
 import Form from './RecommandationForm/Form'
+import ComprehensiveClaimDetails from '../../view/[id]/ComprehensiveClaimDetails'
 
 const CredentialData = () => {
   const { activeStep, setActiveStep } = useStepContext()
@@ -85,20 +86,53 @@ const CredentialData = () => {
   return (
     <Box
       sx={{
-        display: !isLargeScreen ? 'flex' : 'block',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
+        display: 'flex',
+        flexDirection: isLargeScreen ? 'row' : 'column',
+        justifyContent: 'center',
         overflow: 'auto',
         mt: '20px',
-        alignItems: 'center'
+        alignItems: 'flex-start',
+        gap: '20px',
+        px: '20px'
       }}
     >
-      <Box sx={{ height: '100%' }}>
+      <Box
+        sx={{
+          flex: isLargeScreen ? '1' : 'none',
+          width: '100%',
+          maxWidth: isLargeScreen ? '720px' : '100%'
+        }}
+      >
         {activeStep === 0 && (
           <Credential setactivStep={setActiveStep} fullName={fullName} email={email} />
         )}
         {activeStep !== 0 && <Form fullName={fullName} email={email} />}
       </Box>
+
+      {activeStep > 0 && isLargeScreen && (
+        <Box
+          sx={{
+            flex: '1',
+            width: '100%',
+            maxWidth: '600px',
+            position: 'sticky',
+            top: { md: '117.97px', xs: '30px' }
+          }}
+        >
+          <ComprehensiveClaimDetails fileID={id} />
+        </Box>
+      )}
+
+      {activeStep > 0 && !isLargeScreen && (
+        <Box
+          sx={{
+            width: '100%',
+            mt: '20px'
+          }}
+        >
+          <ComprehensiveClaimDetails fileID={id} />
+        </Box>
+      )}
     </Box>
   )
 }
