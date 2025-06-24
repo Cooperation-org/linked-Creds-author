@@ -14,6 +14,12 @@ interface UserTokens {
 
 export const getFileViaFirebase = async (fileId: string) => {
   try {
+    // Check if Firebase is configured
+    if (!db) {
+      console.error('Firebase is not configured. Cannot retrieve file.')
+      return null
+    }
+
     // 1- getAccessToken   2- fetch file
     const accessToken = await getAccessToken(fileId)
     const fileContent = await fetch(
@@ -43,6 +49,10 @@ export const storeFileTokens = async ({
   tokens: FileTokens
 }): Promise<void> => {
   try {
+    if (!db) {
+      throw new Error('Firebase is not configured')
+    }
+
     if (!tokens.accessToken || !tokens.refreshToken) {
       throw new Error('Invalid tokens object')
     }
@@ -67,6 +77,11 @@ export const storeFileTokens = async ({
 
 export const getAccessToken = async (fileId: string) => {
   try {
+    if (!db) {
+      console.error('Firebase is not configured. Cannot retrieve access token.')
+      return null
+    }
+
     const docRef = doc(db, 'files', fileId)
     const docSnap = await getDoc(docRef)
 
@@ -151,6 +166,10 @@ export const updateFileAccessToken = async ({
     accessToken
   )
   try {
+    if (!db) {
+      throw new Error('Firebase is not configured')
+    }
+
     await setDoc(
       doc(db, 'files', googleFileId),
       { accessToken, expiresAt: Date.now() + 3600 * 1000 },
@@ -169,6 +188,11 @@ export const updateFileAccessToken = async ({
  */
 export const getFileTokens = async ({ googleFileId }: { googleFileId: string }) => {
   try {
+    if (!db) {
+      console.error('Firebase is not configured. Cannot retrieve file tokens.')
+      return null
+    }
+
     const docRef = doc(db, 'files', googleFileId)
     const docSnap = await getDoc(docRef)
 
@@ -191,6 +215,11 @@ export const getUserTokens = async ({
   userId: string
 }): Promise<UserTokens | null> => {
   try {
+    if (!db) {
+      console.error('Firebase is not configured. Cannot retrieve user tokens.')
+      return null
+    }
+
     const docRef = doc(db, 'users', userId, 'tokens', 'googleDrive')
     const docSnap = await getDoc(docRef)
 
@@ -269,6 +298,10 @@ export const deleteFileTokens = async ({
   googleFileId: string
 }): Promise<void> => {
   try {
+    if (!db) {
+      throw new Error('Firebase is not configured')
+    }
+
     await setDoc(doc(db, 'files', googleFileId), {})
     console.log(`Tokens deleted successfully for file ${googleFileId}`)
   } catch (error) {
@@ -282,6 +315,10 @@ export const deleteFileTokens = async ({
  */
 export const deleteUserTokens = async ({ userId }: { userId: string }): Promise<void> => {
   try {
+    if (!db) {
+      throw new Error('Firebase is not configured')
+    }
+
     await setDoc(doc(db, 'users', userId, 'tokens', 'googleDrive'), {})
     console.log(`Tokens deleted successfully for user ${userId}`)
   } catch (error) {
