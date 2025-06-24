@@ -12,8 +12,25 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 }
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
-const db = getFirestore(app)
-const auth = getAuth(app)
+// Check if all required Firebase config values are present
+const isFirebaseConfigured =
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.storageBucket &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId
+
+let app: any = null
+let db: any = null
+let auth: any = null
+
+if (isFirebaseConfigured) {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
+  db = getFirestore(app)
+  auth = getAuth(app)
+} else {
+  console.warn('Firebase configuration is incomplete. Some features may not work.')
+}
 
 export { app, db, auth, firebaseConfig }
