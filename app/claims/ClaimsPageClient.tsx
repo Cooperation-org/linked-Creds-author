@@ -34,6 +34,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import useGoogleDrive from '../hooks/useGoogleDrive'
 import LoadingOverlay from '../components/Loading/LoadingOverlay'
 import ComprehensiveClaimDetails from '../view/[id]/ComprehensiveClaimDetails'
+import { updateClickRates } from '../firebase/firestore'
 
 import {
   SVGHeart,
@@ -191,6 +192,7 @@ const withResolversPolyfill = <T,>() => {
 
 const ClaimsPageClient: React.FC = () => {
   const [claims, setClaims] = useState<any[]>([])
+  console.log(': claims', claims)
   const [loading, setLoading] = useState(true)
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
@@ -208,6 +210,7 @@ const ClaimsPageClient: React.FC = () => {
 
   const { data: session } = useSession()
   const accessToken = session?.accessToken
+  const userEmail = session?.user?.email
   const { storage } = useGoogleDrive()
   const router = useRouter()
   const theme = useTheme()
@@ -218,6 +221,9 @@ const ClaimsPageClient: React.FC = () => {
     const url = `${window.location.origin}/askforrecommendation/${claimId}`
     await navigator.clipboard.writeText(url)
     router.push(`/askforrecommendation/${claimId}`)
+    if (userEmail) {
+      updateClickRates(userEmail, 'requestRecommendation')
+    }
   }
 
   const handleViewClaimClick = (claimId: string, e?: React.MouseEvent) => {
@@ -238,6 +244,9 @@ const ClaimsPageClient: React.FC = () => {
     e?.stopPropagation()
     const claimId = claim.id.id
     const mailPageUrl = `${window.location.origin}/mail/${claimId}`
+    if (userEmail) {
+      updateClickRates(userEmail, 'shareCredential')
+    }
     window.location.href = mailPageUrl
   }
   const handleDesktopMenuOpen = (event: React.MouseEvent<HTMLElement>, claim: any) => {
@@ -266,6 +275,9 @@ const ClaimsPageClient: React.FC = () => {
   const handleLinkedInShare = (claim: any) => {
     const linkedInUrl = generateLinkedInUrl(claim)
     window.open(linkedInUrl, '_blank')
+    if (userEmail) {
+      updateClickRates(userEmail, 'shareCredential')
+    }
   }
 
   const handleDesktopMenuClose = () => {
@@ -371,7 +383,15 @@ const ClaimsPageClient: React.FC = () => {
   }, [getAllClaims])
 
   useEffect(() => {
-    localStorage.removeItem('vcs')
+    const handleBeforeUnload = () => {
+      localStorage.removeItem('vcs')
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
   }, [])
 
   return (
@@ -496,7 +516,15 @@ const ClaimsPageClient: React.FC = () => {
                       variant='subtitle1'
                       sx={{
                         fontWeight: 600,
-                        textDecoration: 'underline'
+                        textDecoration: 'underline',
+                        cursor: 'pointer'
+                      }}
+                      onClick={e => {
+                        e.stopPropagation()
+                        window.open(
+                          `${window.location.origin}/view/${claim.id.id}`,
+                          '_blank'
+                        )
                       }}
                     >
                       {claim.credentialSubject.achievement[0]?.name}
@@ -511,10 +539,19 @@ const ClaimsPageClient: React.FC = () => {
                       <Typography
                         sx={{
                           fontWeight: 'bold',
-                          fontSize: '1.25rem'
+                          fontSize: '1.25rem',
+                          textDecoration: 'underline',
+                          cursor: 'pointer'
+                        }}
+                        onClick={e => {
+                          e.stopPropagation()
+                          window.open(
+                            `${window.location.origin}/view/${claim.id.id}`,
+                            '_blank'
+                          )
                         }}
                       >
-                        {claim.credentialSubject.achievement[0]?.name} -
+                        {claim.credentialSubject.achievement[0]?.name}
                       </Typography>
                       <Typography
                         sx={{
