@@ -1,13 +1,24 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Box, styled, Card, CardContent, IconButton } from '@mui/material'
+import {
+  Box,
+  styled,
+  Card,
+  CardContent,
+  IconButton,
+  TextField,
+  Tooltip
+} from '@mui/material'
 import Image from 'next/image'
 import { FileItem } from '../credentialForm/form/types/Types'
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
 import DeleteIcon from '@mui/icons-material/Delete'
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import StarIcon from '@mui/icons-material/Star'
+import EditIcon from '@mui/icons-material/Edit'
+import CheckIcon from '@mui/icons-material/Check'
 GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 
 interface FileListProps {
@@ -27,212 +38,248 @@ const FileListContainer = styled(Box)({
   width: '100%'
 })
 
-const isImage = (fileName: string) => /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName)
-const isPDF = (fileName: string) => fileName.toLowerCase().endsWith('.pdf')
-const isMP4 = (fileName: string) => fileName.toLowerCase().endsWith('.mp4')
+const isImage = (f: string) => /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f)
+const isPDF = (f: string) => f.toLowerCase().endsWith('.pdf')
+const isMP4 = (f: string) => f.toLowerCase().endsWith('.mp4')
 
 const renderPDFThumbnail = async (file: FileItem) => {
-  try {
-    const loadingTask = getDocument(file.url)
-    const pdf = await loadingTask.promise
-    const page = await pdf.getPage(1)
-    const viewport = page.getViewport({ scale: 0.1 })
-    const canvas = document.createElement('canvas')
-    const context = canvas.getContext('2d')
-    if (context) {
-      canvas.height = viewport.height
-      canvas.width = viewport.width
-      await page.render({ canvasContext: context, viewport }).promise
-      return canvas.toDataURL()
-    }
-  } catch (error) {
-    console.error('Error rendering PDF thumbnail:', error)
-  }
-  return '/fallback-pdf-thumbnail.svg'
+  const pdf = await (await getDocument(file.url)).promise
+  const page = await pdf.getPage(1)
+  const vp = page.getViewport({ scale: 0.1 })
+  const c = document.createElement('canvas')
+  c.width = vp.width
+  c.height = vp.height
+  await page.render({ canvasContext: c.getContext('2d')!, viewport: vp }).promise
+  return c.toDataURL()
 }
 
-const generateVideoThumbnail = (file: FileItem): Promise<string> => {
-  return new Promise((resolve, reject) => {
+const generateVideoThumbnail = (file: FileItem): Promise<string> =>
+  new Promise((resolve, reject) => {
     const video = document.createElement('video')
-
     video.src = file.url
-
-    video.addEventListener(
-      'loadeddata',
-      () => {
-        video.currentTime = 1
-      },
-      { once: true }
-    )
-
+    video.addEventListener('loadeddata', () => (video.currentTime = 1), { once: true })
     video.addEventListener(
       'seeked',
       () => {
-        try {
-          const canvas = document.createElement('canvas')
-          canvas.width = video.videoWidth
-          canvas.height = video.videoHeight
-          const context = canvas.getContext('2d')
-
-          if (!context) {
-            reject(new Error('Canvas context not available for video thumbnail.'))
-            return
-          }
-          context.drawImage(video, 0, 0, canvas.width, canvas.height)
-          const dataURL = canvas.toDataURL('image/png')
-          resolve(dataURL)
-        } catch (err) {
-          reject(err)
-        }
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject(new Error())
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/png'))
       },
       { once: true }
     )
-
-    video.addEventListener('error', e => {
-      reject(e)
-    })
+    video.addEventListener('error', () => reject(new Error()))
   })
-}
 
-const FileListDisplay = ({ files, onDelete, onReorder }: FileListProps) => {
-  const [pdfThumbnails, setPdfThumbnails] = useState<Record<string, string>>({})
-  const [videoThumbnails, setVideoThumbnails] = useState<Record<string, string>>({})
+const FileListDisplay: React.FC<FileListProps> = ({
+  files,
+  onDelete,
+  onNameChange,
+  onSetAsFeatured,
+  onReorder
+}) => {
+  const [pdfThumbs, setPdfThumbs] = useState<Record<string, string>>({})
+  const [vidThumbs, setVidThumbs] = useState<Record<string, string>>({})
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingValue, setEditingValue] = useState('')
 
   useEffect(() => {
-    files.forEach(async file => {
-      if (isPDF(file.name) && !pdfThumbnails[file.id]) {
-        const pdfThumb = await renderPDFThumbnail(file)
-        setPdfThumbnails(prev => ({ ...prev, [file.id]: pdfThumb }))
-      }
-
-      if (isMP4(file.name) && !videoThumbnails[file.id]) {
-        try {
-          const vidThumb = await generateVideoThumbnail(file)
-          setVideoThumbnails(prev => ({ ...prev, [file.id]: vidThumb }))
-        } catch (err) {
-          console.error('Error generating MP4 thumbnail:', err)
-          setVideoThumbnails(prev => ({
-            ...prev,
-            [file.id]: '/fallback-video.png'
-          }))
+    const generateThumbs = async () => {
+      for (const f of files) {
+        if (isPDF(f.name) && !pdfThumbs[f.id]) {
+          const thumb = await renderPDFThumbnail(f)
+          setPdfThumbs(prev => ({ ...prev, [f.id]: thumb }))
+        }
+        if (isMP4(f.name) && !vidThumbs[f.id]) {
+          try {
+            const thumb = await generateVideoThumbnail(f)
+            setVidThumbs(prev => ({ ...prev, [f.id]: thumb }))
+          } catch {
+            setVidThumbs(prev => ({ ...prev, [f.id]: '/fallback-video.png' }))
+          }
         }
       }
-    })
-  }, [files, pdfThumbnails, videoThumbnails])
-
-  const handleMoveItem = (
-    event: React.MouseEvent,
-    index: number,
-    direction: 'up' | 'down'
-  ) => {
-    event.stopPropagation()
-    const newFiles = [...files]
-    const newIndex = direction === 'up' ? index - 1 : index + 1
-
-    if (newIndex >= 0 && newIndex < files.length) {
-      // Swap items
-      ;[newFiles[index], newFiles[newIndex]] = [newFiles[newIndex], newFiles[index]]
-      onReorder(newFiles)
     }
+    generateThumbs()
+  }, [files, pdfThumbs, vidThumbs])
+
+  const moveItem = (e: React.MouseEvent, idx: number, dir: 'up' | 'down') => {
+    e.stopPropagation()
+
+    const next = dir === 'up' ? idx - 1 : idx + 1
+    if (next < 0 || next >= files.length) return
+
+    const reordered = [...files]
+    ;[reordered[idx], reordered[next]] = [reordered[next], reordered[idx]]
+
+    reordered.forEach(f => (f.isFeatured = false))
+    reordered[0].isFeatured = true
+    onSetAsFeatured(reordered[0].id)
+
+    onReorder(reordered)
+  }
+
+  const startEdit = (f: FileItem) => {
+    setEditingId(f.id)
+    setEditingValue(f.name.replace(/(\.[^/.]+)$/, ''))
+  }
+
+  const saveEdit = (f: FileItem) => {
+    if (!editingValue.trim()) return setEditingId(null)
+    const ext = f.name.split('.').pop() ?? ''
+    onNameChange(f.id, `${editingValue.trim()}.${ext}`)
+    setEditingId(null)
   }
 
   return (
     <FileListContainer>
-      {files.map((file, index) => (
-        <Box sx={{ width: '100%' }} key={file.id}>
-          <Card
-            sx={{
-              width: '100%',
-              bgcolor: 'white',
-              borderRadius: 2
-            }}
-          >
-            <CardContent sx={{ p: 4, width: '100%' }}>
-              <Box sx={{ marginRight: '10px', display: 'flex', alignItems: 'center' }}>
-                {isImage(file.name) && (
-                  <img
-                    src={file.url}
-                    alt={file.name.split('.')[0]}
-                    style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
-                  />
-                )}
-                {isPDF(file.name) && (
-                  <img
-                    src={pdfThumbnails[file.id] ?? '/fallback-pdf-thumbnail.svg'}
-                    alt={file.name.split('.')[0]}
-                    width='100%'
-                    height='auto'
-                    style={{ borderRadius: '8px' }}
-                  />
-                )}
-
-                {isMP4(file.name) && (
-                  <Image
-                    src={videoThumbnails[file.id] ?? '/fallback-video.png'}
-                    alt={file.name.split('.')[0]}
-                    width={80}
-                    height={80}
-                    style={{ borderRadius: '8px' }}
-                  />
-                )}
-
-                {!isImage(file.name) && !isPDF(file.name) && !isMP4(file.name) && (
-                  <Box
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: '#f3f3f3',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem',
-                      color: '#666'
-                    }}
-                  >
-                    FILE
+      {files.map((f, idx) => {
+        const ext = f.name.split('.').pop()
+        const isEditing = editingId === f.id
+        return (
+          <Box key={f.id} sx={{ width: '100%' }}>
+            <Card sx={{ width: '100%', bgcolor: 'white', borderRadius: 2 }}>
+              <CardContent sx={{ p: 4, width: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {isImage(f.name) && (
+                    <Image
+                      src={f.url}
+                      alt={f.name}
+                      width={80}
+                      height={80}
+                      style={{ borderRadius: 8 }}
+                    />
+                  )}
+                  {isPDF(f.name) && (
+                    <Image
+                      src={pdfThumbs[f.id] ?? '/fallback-pdf-thumbnail.svg'}
+                      alt={f.name}
+                      width={80}
+                      height={80}
+                      style={{ borderRadius: 8 }}
+                    />
+                  )}
+                  {isMP4(f.name) && (
+                    <Image
+                      src={vidThumbs[f.id] ?? '/fallback-video.png'}
+                      alt={f.name}
+                      width={80}
+                      height={80}
+                      style={{ borderRadius: 8 }}
+                    />
+                  )}
+                  {!isImage(f.name) && !isPDF(f.name) && !isMP4(f.name) && (
+                    <Box
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        bgcolor: '#f3f3f3',
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.9rem',
+                        color: '#666'
+                      }}
+                    >
+                      FILE
+                    </Box>
+                  )}
+                  <Box sx={{ flexGrow: 1 }}>
+                    {isEditing ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField
+                          size='small'
+                          value={editingValue}
+                          onChange={e => setEditingValue(e.target.value)}
+                          sx={{ width: '100%' }}
+                        />
+                        <Box>.{ext}</Box>
+                      </Box>
+                    ) : (
+                      <Box
+                        sx={{
+                          fontSize: '0.95rem',
+                          fontWeight: 500,
+                          wordBreak: 'break-all'
+                        }}
+                      >
+                        {f.name}
+                      </Box>
+                    )}
                   </Box>
+                </Box>
+              </CardContent>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 1,
+                  bgcolor: '#242c41',
+                  p: 2,
+                  borderBottomLeftRadius: 2,
+                  borderBottomRightRadius: 2
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                {idx === 0 && (
+                  <Tooltip title='Featured media' arrow>
+                    <IconButton sx={{ color: '#ffce31', cursor: 'default' }}>
+                      <StarIcon />
+                    </IconButton>
+                  </Tooltip>
                 )}
+                {isEditing ? (
+                  <Tooltip title='Save file name' arrow>
+                    <IconButton sx={{ color: 'white' }} onClick={() => saveEdit(f)}>
+                      <CheckIcon />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title='Edit file name' arrow>
+                    <IconButton sx={{ color: 'white' }} onClick={() => startEdit(f)}>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <Tooltip title='Delete media' arrow>
+                  <IconButton
+                    sx={{ color: 'white' }}
+                    onClick={e => onDelete(e, f.googleId ?? f.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title='Move up' arrow>
+                  <span>
+                    <IconButton
+                      sx={{ color: 'white' }}
+                      onClick={e => moveItem(e, idx, 'up')}
+                      disabled={idx === 0}
+                    >
+                      <KeyboardArrowUpIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title='Move down' arrow>
+                  <span>
+                    <IconButton
+                      sx={{ color: 'white' }}
+                      onClick={e => moveItem(e, idx, 'down')}
+                      disabled={idx === files.length - 1}
+                    >
+                      <KeyboardArrowDownIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
               </Box>
-            </CardContent>
-
-            {/* Action Buttons */}
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: 1,
-                bgcolor: '#242c41',
-                p: 2,
-                borderBottomLeftRadius: 8,
-                borderBottomRightRadius: 8
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              <IconButton
-                sx={{ color: 'white', '&:hover': { bgcolor: 'slate.800' } }}
-                onClick={e => onDelete(e, file.googleId ?? file.id)}
-              >
-                <DeleteIcon />
-              </IconButton>
-              <IconButton
-                sx={{ color: 'white', '&:hover': { bgcolor: 'slate.800' } }}
-                onClick={e => handleMoveItem(e, index, 'up')}
-                disabled={index === 0}
-              >
-                <KeyboardArrowUpIcon />
-              </IconButton>
-              <IconButton
-                sx={{ color: 'white', '&:hover': { bgcolor: 'slate.800' } }}
-                onClick={e => handleMoveItem(e, index, 'down')}
-                disabled={index === files.length - 1}
-              >
-                <KeyboardArrowDownIcon />
-              </IconButton>
-            </Box>
-          </Card>
-        </Box>
-      ))}
+            </Card>
+          </Box>
+        )
+      })}
     </FileListContainer>
   )
 }
