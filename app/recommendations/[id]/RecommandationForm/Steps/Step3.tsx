@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Box, Typography, styled, Card } from '@mui/material'
+import { useDropzone } from 'react-dropzone'
 
 import FileListDisplay from '../../../../components/FileList'
 import { GoogleDriveStorage, uploadToGoogleDrive } from '@cooperation/vc-storage'
@@ -246,6 +247,72 @@ const FileUploadAndList: React.FC<FileUploadAndListProps> = ({
     setUploadImageFn(() => handleUpload)
   }, [handleUpload, setUploadImageFn])
 
+  // Drag and drop functionality
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (files.length + acceptedFiles.length > maxFiles) {
+        alert(`You can only upload a maximum of ${maxFiles} files.`)
+        return
+      }
+
+      const isAnyFileFeatured = files.some(file => file.isFeatured)
+      let hasSetFeatured = isAnyFileFeatured
+
+      const processFile = (file: File) => {
+        return new Promise<FileItem>(resolve => {
+          const reader = new FileReader()
+          reader.onload = e => {
+            const newFileItem: FileItem = {
+              id: crypto.randomUUID(),
+              file: file,
+              name: file.name,
+              url: e.target?.result as string,
+              isFeatured: !hasSetFeatured && files.length === 0,
+              uploaded: false,
+              fileExtension: file.name.split('.').pop() ?? ''
+            }
+
+            if (newFileItem.isFeatured) hasSetFeatured = true
+            resolve(newFileItem)
+          }
+          reader.readAsDataURL(file)
+        })
+      }
+
+      Promise.all(acceptedFiles.map(processFile)).then(newFileItems => {
+        const updatedFiles = [...files]
+        newFileItems.forEach(newFile => {
+          const duplicateIndex = updatedFiles.findIndex(f => f.name === newFile.name)
+          if (duplicateIndex !== -1) {
+            updatedFiles[duplicateIndex] = newFile
+          } else {
+            if (newFile.isFeatured) {
+              updatedFiles.unshift(newFile)
+            } else {
+              updatedFiles.push(newFile)
+            }
+          }
+        })
+        handleFilesSelected(updatedFiles)
+      })
+    },
+    [files, handleFilesSelected]
+  )
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    onDrop,
+    multiple: true,
+    accept: {
+      'image/*': [],
+      'video/*': [],
+      'application/pdf': [],
+      'application/msword': [],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [],
+      'text/*': []
+    },
+    noClick: true
+  })
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = event.target.files
     if (newFiles) {
@@ -358,7 +425,8 @@ const FileUploadAndList: React.FC<FileUploadAndListProps> = ({
 
         {/* Add Media Section */}
         <Box width='100%'>
-          <CardStyle variant='outlined' onClick={handleFileUploadClick}>
+          <CardStyle variant='outlined' {...getRootProps()} isDragActive={isDragActive}>
+            <input {...getInputProps()} />
             <FileListDisplay
               files={[...selectedFiles]}
               onDelete={handleDelete}
@@ -366,21 +434,21 @@ const FileUploadAndList: React.FC<FileUploadAndListProps> = ({
               onSetAsFeatured={setAsFeatured}
               onReorder={handleReorder}
             />
-            <SVGUploadMedia />
 
-            <Typography variant='body1' color='primary' align='center'>
-              + Add media
-              <br />
-              (images, documents, video)
-            </Typography>
-            <input
-              type='file'
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-              accept='*'
-              multiple
-            />
+            <Box onClick={open} sx={{ textAlign: 'center', cursor: 'pointer' }}>
+              <SVGUploadMedia />
+              <Typography variant='body1' color='primary' align='center'>
+                {isDragActive ? (
+                  'Drop files here...'
+                ) : (
+                  <>
+                    + Add media
+                    <br />
+                    (images, documents, video)
+                  </>
+                )}
+              </Typography>
+            </Box>
           </CardStyle>
         </Box>
       </Box>
@@ -389,21 +457,24 @@ const FileUploadAndList: React.FC<FileUploadAndListProps> = ({
     </Box>
   )
 }
-const CardStyle = styled(Card)({
-  padding: '40px 20px',
-  cursor: 'pointer',
-  width: '100%',
-  transition: 'all 0.3s ease',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  p: 4,
-  borderRadius: 2,
-  gap: 2,
-  border: '2px dashed #ccc',
-  '&:hover': {
-    borderColor: '#2563EB'
-  }
-})
+const CardStyle = styled(Card)<{ isDragActive?: boolean }>(
+  ({ isDragActive = false }) => ({
+    padding: '40px 20px',
+    cursor: 'default',
+    width: '100%',
+    transition: 'all 0.3s ease',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    p: 4,
+    borderRadius: 2,
+    gap: 2,
+    border: isDragActive ? '2px dashed #2563EB' : '2px dashed #ccc',
+    backgroundColor: isDragActive ? '#f0f9ff' : 'transparent',
+    '&:hover': {
+      borderColor: '#2563EB'
+    }
+  })
+)
 
 export default FileUploadAndList
