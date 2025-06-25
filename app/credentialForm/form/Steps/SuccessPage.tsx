@@ -104,7 +104,8 @@ const SuccessPage: React.FC<SuccessPageProps> = ({
       issueMonth: '8',
       expirationYear: '2025',
       expirationMonth: '8',
-      certUrl: `https://linkedcreds.allskillscount.org/view/${fileId}`
+      certUrl: `https://linkedcreds.allskillscount.org/view/${fileId}`,
+      certId: fileId
     })
     return `${baseLinkedInUrl}?${params.toString()}`
   }
