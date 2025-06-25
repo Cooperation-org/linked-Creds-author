@@ -190,6 +190,40 @@ const withResolversPolyfill = <T,>() => {
   return { promise, resolve, reject }
 }
 
+// Add helper function to safely get credential name
+const getCredentialName = (claim: any): string => {
+  // Handle new credential format (direct access)
+  if (claim.credentialSubject?.employeeName) {
+    return `Performance Review: ${claim.credentialSubject.employeeJobTitle || 'Unknown Position'}`
+  }
+  if (claim.credentialSubject?.volunteerWork) {
+    return `Volunteer: ${claim.credentialSubject.volunteerWork}`
+  }
+  if (claim.credentialSubject?.role) {
+    return `Employment: ${claim.credentialSubject.role}`
+  }
+  if (claim.credentialSubject?.credentialName) {
+    return claim.credentialSubject.credentialName
+  }
+
+  // Handle old credential format (achievement array)
+  if (claim.credentialSubject?.achievement?.[0]?.name) {
+    return claim.credentialSubject.achievement[0].name
+  }
+
+  // Fallback
+  return 'Unknown Credential'
+}
+
+// Add helper function to safely get credential type
+const getCredentialType = (claim: any): string => {
+  const types = claim.type || []
+  if (types.includes('EmploymentCredential')) return 'Employment'
+  if (types.includes('VolunteeringCredential')) return 'Volunteer'
+  if (types.includes('PerformanceReviewCredential')) return 'Performance Review'
+  return 'Skill'
+}
+
 const ClaimsPageClient: React.FC = () => {
   const [claims, setClaims] = useState<any[]>([])
   console.log(': claims', claims)
@@ -319,6 +353,15 @@ const ClaimsPageClient: React.FC = () => {
     }
   }
 
+  // Helper function to check if a credential is a skill credential
+  const isSkillCredential = (claim: any): boolean => {
+    // Check if it has the achievement array structure (skill credentials)
+    return (
+      claim.credentialSubject?.achievement &&
+      Array.isArray(claim.credentialSubject.achievement)
+    )
+  }
+
   const getAllClaims = useCallback(async (): Promise<any> => {
     let claimsData: any[] = []
     const cachedVCs = localStorage.getItem('vcs')
@@ -328,7 +371,8 @@ const ClaimsPageClient: React.FC = () => {
         console.log('🚀 ~ getAllClaims ~ parsedVCs:', parsedVCs)
         if (Array.isArray(parsedVCs) && parsedVCs.length > 0) {
           console.log('Returning cached VCs from localStorage')
-          claimsData = parsedVCs
+          // Filter to only skill credentials
+          claimsData = parsedVCs.filter(isSkillCredential)
         }
       } catch (error) {
         console.error('Error parsing cached VCs from localStorage:', error)
@@ -345,10 +389,14 @@ const ClaimsPageClient: React.FC = () => {
         try {
           const content = JSON.parse(file?.data?.body)
           if (content && '@context' in content) {
-            vcs.push({
+            const credential = {
               ...content,
               id: file
-            })
+            }
+            // Only add skill credentials
+            if (isSkillCredential(credential)) {
+              vcs.push(credential)
+            }
           }
         } catch (error) {
           console.error(`Error processing file ${file}:`, error)
@@ -361,7 +409,9 @@ const ClaimsPageClient: React.FC = () => {
       console.error('Error fetching claims from drive:', error)
       const fallback = localStorage.getItem('vcs')
       if (fallback) {
-        return JSON.parse(fallback)
+        // Filter cached fallback to only skill credentials
+        const parsed = JSON.parse(fallback)
+        return Array.isArray(parsed) ? parsed.filter(isSkillCredential) : []
       }
       return []
     }
@@ -527,7 +577,7 @@ const ClaimsPageClient: React.FC = () => {
                         )
                       }}
                     >
-                      {claim.credentialSubject.achievement[0]?.name}
+                      {getCredentialName(claim)}
                     </Typography>
                   </Box>
                 ) : (
@@ -551,7 +601,7 @@ const ClaimsPageClient: React.FC = () => {
                           )
                         }}
                       >
-                        {claim.credentialSubject.achievement[0]?.name}
+                        {getCredentialName(claim)}
                       </Typography>
                       <Typography
                         sx={{
@@ -564,7 +614,7 @@ const ClaimsPageClient: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography sx={{ color: 'text.secondary' }}>
-                      {claim.credentialSubject?.name} -{' '}
+                      {claim.credentialSubject?.name} - {getCredentialType(claim)} -{' '}
                       {getTimeDifference(claim.issuanceDate)}
                     </Typography>
                   </Box>
