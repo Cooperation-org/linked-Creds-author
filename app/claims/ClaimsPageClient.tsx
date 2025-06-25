@@ -190,38 +190,100 @@ const withResolversPolyfill = <T,>() => {
   return { promise, resolve, reject }
 }
 
-// Add helper function to safely get credential name
+// Add helper function to safely get credential name with comprehensive error handling
 const getCredentialName = (claim: any): string => {
-  // Handle new credential format (direct access)
-  if (claim.credentialSubject?.employeeName) {
-    return `Performance Review: ${claim.credentialSubject.employeeJobTitle || 'Unknown Position'}`
-  }
-  if (claim.credentialSubject?.volunteerWork) {
-    return `Volunteer: ${claim.credentialSubject.volunteerWork}`
-  }
-  if (claim.credentialSubject?.role) {
-    return `Employment: ${claim.credentialSubject.role}`
-  }
-  if (claim.credentialSubject?.credentialName) {
-    return claim.credentialSubject.credentialName
-  }
+  try {
+    // Safety check for claim object
+    if (!claim || typeof claim !== 'object') {
+      console.warn('Invalid claim object:', claim)
+      return 'Invalid Credential'
+    }
 
-  // Handle old credential format (achievement array)
-  if (claim.credentialSubject?.achievement?.[0]?.name) {
-    return claim.credentialSubject.achievement[0].name
-  }
+    // Safety check for credentialSubject
+    if (!claim.credentialSubject || typeof claim.credentialSubject !== 'object') {
+      console.warn('Invalid credentialSubject:', claim.credentialSubject)
+      return 'Unknown Credential'
+    }
 
-  // Fallback
-  return 'Unknown Credential'
+    const { credentialSubject } = claim
+
+    // Handle new credential format (direct access)
+    if (credentialSubject.employeeName) {
+      return `Performance Review: ${credentialSubject.employeeJobTitle || 'Unknown Position'}`
+    }
+    if (credentialSubject.volunteerWork) {
+      return `Volunteer: ${credentialSubject.volunteerWork}`
+    }
+    if (credentialSubject.role) {
+      return `Employment: ${credentialSubject.role}`
+    }
+    if (credentialSubject.credentialName) {
+      return credentialSubject.credentialName
+    }
+
+    // Handle old credential format (achievement array)
+    if (
+      credentialSubject.achievement &&
+      Array.isArray(credentialSubject.achievement) &&
+      credentialSubject.achievement.length > 0 &&
+      credentialSubject.achievement[0] &&
+      credentialSubject.achievement[0].name
+    ) {
+      return credentialSubject.achievement[0].name
+    }
+
+    // Fallback
+    return 'Unknown Credential'
+  } catch (error) {
+    console.error('Error in getCredentialName:', error, claim)
+    return 'Error Loading Credential'
+  }
 }
 
-// Add helper function to safely get credential type
+// Add helper function to safely get credential type with error handling
 const getCredentialType = (claim: any): string => {
-  const types = claim.type || []
-  if (types.includes('EmploymentCredential')) return 'Employment'
-  if (types.includes('VolunteeringCredential')) return 'Volunteer'
-  if (types.includes('PerformanceReviewCredential')) return 'Performance Review'
-  return 'Skill'
+  try {
+    if (!claim || typeof claim !== 'object') {
+      return 'Unknown'
+    }
+
+    const types = Array.isArray(claim.type) ? claim.type : []
+    if (types.includes('EmploymentCredential')) return 'Employment'
+    if (types.includes('VolunteeringCredential')) return 'Volunteer'
+    if (types.includes('PerformanceReviewCredential')) return 'Performance Review'
+    return 'Skill'
+  } catch (error) {
+    console.error('Error in getCredentialType:', error, claim)
+    return 'Unknown'
+  }
+}
+
+// Helper function to validate claim object
+const isValidClaim = (claim: any): boolean => {
+  try {
+    return (
+      claim &&
+      typeof claim === 'object' &&
+      claim.id &&
+      claim.credentialSubject &&
+      typeof claim.credentialSubject === 'object'
+    )
+  } catch (error) {
+    console.error('Error validating claim:', error, claim)
+    return false
+  }
+}
+
+// Safe helper to get claim ID
+const getClaimId = (claim: any): string => {
+  try {
+    if (claim?.id?.id) return claim.id.id
+    if (claim?.id) return claim.id
+    return 'unknown-id'
+  } catch (error) {
+    console.error('Error getting claim ID:', error, claim)
+    return 'error-id'
+  }
 }
 
 const ClaimsPageClient: React.FC = () => {
@@ -276,13 +338,17 @@ const ClaimsPageClient: React.FC = () => {
   }
 
   const handleEmailShare = (claim: any, e?: React.MouseEvent) => {
-    e?.stopPropagation()
-    const claimId = claim.id.id
-    const mailPageUrl = `${window.location.origin}/mail/${claimId}`
-    if (userEmail) {
-      updateClickRates(userEmail, 'shareCredential')
+    try {
+      e?.stopPropagation()
+      const claimId = getClaimId(claim)
+      const mailPageUrl = `${window.location.origin}/mail/${claimId}`
+      if (userEmail) {
+        updateClickRates(userEmail, 'shareCredential')
+      }
+      window.location.href = mailPageUrl
+    } catch (error) {
+      console.error('Error in handleEmailShare:', error, claim)
     }
-    window.location.href = mailPageUrl
   }
   const handleDesktopMenuOpen = (event: React.MouseEvent<HTMLElement>, claim: any) => {
     event.stopPropagation()
@@ -291,20 +357,27 @@ const ClaimsPageClient: React.FC = () => {
   }
 
   const generateLinkedInUrl = (claim: any) => {
-    const issuanceDate = new Date(claim.issuanceDate)
-    const expirationDate = new Date(claim.expirationDate)
-    const baseLinkedInUrl = 'https://www.linkedin.com/profile/add'
-    const params = new URLSearchParams({
-      startTask: 'CERTIFICATION_NAME',
-      name: claim.credentialSubject.achievement?.[0]?.name ?? 'Certification Name',
-      organizationName: 'Self-Issued',
-      issueYear: issuanceDate.getFullYear().toString(),
-      issueMonth: (issuanceDate.getMonth() + 1).toString(),
-      expirationYear: expirationDate.getFullYear().toString(),
-      expirationMonth: (expirationDate.getMonth() + 1).toString(),
-      certUrl: `https://linkedcreds.allskillscount.com/view/${claim.id.id}`
-    })
-    return `${baseLinkedInUrl}?${params.toString()}`
+    try {
+      const claimId = getClaimId(claim)
+      const credentialName = getCredentialName(claim)
+      const issuanceDate = new Date(claim.issuanceDate || new Date())
+      const expirationDate = new Date(claim.expirationDate || new Date())
+      const baseLinkedInUrl = 'https://www.linkedin.com/profile/add'
+      const params = new URLSearchParams({
+        startTask: 'CERTIFICATION_NAME',
+        name: credentialName,
+        organizationName: 'Self-Issued',
+        issueYear: issuanceDate.getFullYear().toString(),
+        issueMonth: (issuanceDate.getMonth() + 1).toString(),
+        expirationYear: expirationDate.getFullYear().toString(),
+        expirationMonth: (expirationDate.getMonth() + 1).toString(),
+        certUrl: `https://linkedcreds.allskillscount.com/view/${claimId}`
+      })
+      return `${baseLinkedInUrl}?${params.toString()}`
+    } catch (error) {
+      console.error('Error generating LinkedIn URL:', error, claim)
+      return 'https://www.linkedin.com/profile/add'
+    }
   }
 
   const handleLinkedInShare = (claim: any) => {
@@ -356,11 +429,22 @@ const ClaimsPageClient: React.FC = () => {
 
   // Helper function to check if a credential is a skill credential
   const isSkillCredential = (claim: any): boolean => {
-    // Check if it has the achievement array structure (skill credentials)
-    return (
-      claim.credentialSubject?.achievement &&
-      Array.isArray(claim.credentialSubject.achievement)
-    )
+    try {
+      // First validate the claim is valid
+      if (!isValidClaim(claim)) {
+        return false
+      }
+
+      // Check if it has the achievement array structure (skill credentials)
+      return (
+        claim.credentialSubject?.achievement &&
+        Array.isArray(claim.credentialSubject.achievement) &&
+        claim.credentialSubject.achievement.length > 0
+      )
+    } catch (error) {
+      console.error('Error in isSkillCredential:', error, claim)
+      return false
+    }
   }
 
   const getAllClaims = useCallback(async (): Promise<any> => {
@@ -544,251 +628,278 @@ const ClaimsPageClient: React.FC = () => {
         </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {claims.map(claim => (
-            <Paper
-              key={claim.id}
-              onClick={() => handleCardClick(claim.id)}
-              elevation={0}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                cursor: isMobile ? 'pointer' : 'default',
-                border: '3px solid',
-                borderColor: isMobile ? getRandomBorderColor() : 'transparent',
-                bgcolor: 'background.paper',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                {isMobile ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <BlueBadge />
-                    <Typography
-                      variant='subtitle1'
-                      sx={{
-                        fontWeight: 600,
-                        textDecoration: 'underline',
-                        cursor: 'pointer'
-                      }}
-                      onClick={e => {
-                        e.stopPropagation()
-                        window.open(
-                          `${window.location.origin}/view/${claim.id.id}`,
-                          '_blank'
-                        )
-                      }}
-                    >
-                      {getCredentialName(claim)}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ mt: '5px' }}>
-                        <BlueBadge />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontWeight: 'bold',
-                          fontSize: '1.25rem',
-                          textDecoration: 'underline',
-                          cursor: 'pointer'
-                        }}
-                        onClick={e => {
-                          e.stopPropagation()
-                          window.open(
-                            `${window.location.origin}/view/${claim.id.id}`,
-                            '_blank'
-                          )
-                        }}
-                      >
-                        {getCredentialName(claim)}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          color: 'text.secondary',
-                          fontWeight: 'bold',
-                          fontSize: '1.25rem'
-                        }}
-                      >
-                        {getTimeAgo(claim.issuanceDate)}
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ color: 'text.secondary' }}>
-                      {claim.credentialSubject?.name} - {getCredentialType(claim)} -{' '}
-                      {getTimeDifference(claim.issuanceDate)}
-                    </Typography>
-                  </Box>
-                )}
-
-                {isMobile ? (
-                  <IconButton
-                    size='small'
-                    onClick={e => {
-                      e.stopPropagation()
-                      handleCardClick(claim.id)
-                    }}
-                  >
-                    <KeyboardArrowDownIcon
-                      sx={{
-                        transform: expandedCard === claim.id ? 'rotate(180deg)' : 'none',
-                        transition: 'transform 0.3s'
-                      }}
-                    />
-                  </IconButton>
-                ) : (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        border: '1px solid',
-                        borderColor: 'primary.main',
-                        borderRadius: '100px',
-                        overflow: 'hidden',
-                        bgcolor: 'primary.50'
-                      }}
-                    >
-                      <Button
-                        onClick={e => handleRecommendationClick(claim.id.id, e)}
-                        startIcon={<SVGHeart />}
-                        sx={{
-                          bgcolor: '#eff6ff',
-                          borderColor: '#eff6ff',
-                          '&:hover': { bgcolor: 'primary.100' },
-                          p: '2px 20px',
-                          backgroundColor: '#f0f6ff',
-                          fontSize: '12px',
-                          fontWeight: 'medium',
-                          color: '#003fe0'
-                        }}
-                      >
-                        Ask for a recommendation
-                      </Button>
-                      <Divider orientation='vertical' flexItem color='#003fe0' />
-                      <Button
-                        startIcon={<ContentCopyIcon />}
-                        onClick={e => handleCopyUrl(claim.id.id, e)}
-                        sx={{
-                          bgcolor: '#eff6ff',
-                          '&:hover': { bgcolor: 'primary.100' },
-                          p: '2px 20px',
-                          backgroundColor: '#f0f6ff',
-                          fontSize: '12px',
-                          fontWeight: 'medium',
-                          color: '#003fe0'
-                        }}
-                      >
-                        Copy URL
-                      </Button>
-                    </Box>
-                    <IconButton onClick={e => handleDesktopMenuOpen(e, claim)}>
-                      <MoreVertIcon />
-                    </IconButton>
-                  </Box>
-                )}
-              </Box>
-
-              {isMobile && (
-                <Collapse in={expandedCard === claim.id}>
+          {claims.filter(isValidClaim).map((claim, index) => {
+            // Additional safety check with error boundary
+            try {
+              const claimId = getClaimId(claim)
+              return (
+                <Paper
+                  key={claimId}
+                  onClick={() => handleCardClick(claimId)}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    cursor: isMobile ? 'pointer' : 'default',
+                    border: '3px solid',
+                    borderColor: isMobile ? getRandomBorderColor() : 'transparent',
+                    bgcolor: 'background.paper',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
                   <Box
                     sx={{
-                      mt: 2,
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: 1
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}
                   >
-                    <Button
-                      startIcon={<SVGHeart />}
-                      endIcon={<SVGExport />}
-                      onClick={e => handleRecommendationClick(claim.id.id, e)}
-                      fullWidth
-                      sx={{
-                        justifyContent: 'flex-start',
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.50' }
-                      }}
-                    >
-                      Ask for a recommendation
-                    </Button>
-                    <Button
-                      startIcon={<VisibilityIcon sx={{ color: 'primary.main' }} />}
-                      endIcon={<SVGExport />}
-                      onClick={e => handleViewClaimClick(claim.id.id, e)}
-                      fullWidth
-                      sx={{
-                        justifyContent: 'flex-start',
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.50' }
-                      }}
-                    >
-                      View Claim
-                    </Button>
-                    <Button
-                      startIcon={<SVGLinkedIn />}
-                      endIcon={<SVGExport />}
-                      fullWidth
-                      sx={{
-                        justifyContent: 'flex-start',
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.50' }
-                      }}
-                      onClick={() => handleLinkedInShare(claim)}
-                    >
-                      Share to LinkedIn
-                    </Button>
-                    <Button
-                      startIcon={<SVGEmail />}
-                      endIcon={<SVGExport />}
-                      onClick={e => handleEmailShare(claim, e)}
-                      fullWidth
-                      sx={{
-                        justifyContent: 'flex-start',
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.50' }
-                      }}
-                    >
-                      Share via Email
-                    </Button>
-                    <Button
-                      startIcon={<SVGCopy />}
-                      onClick={e => handleCopyUrl(claim.id.id, e)}
-                      fullWidth
-                      sx={{
-                        justifyContent: 'flex-start',
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.50' }
-                      }}
-                    >
-                      Copy URL
-                    </Button>
-                    <Button
-                      startIcon={<DeleteIcon />}
-                      onClick={e => {
-                        e.stopPropagation()
-                        setSelectedClaim(claim)
-                        setOpenDeleteDialog(true)
-                      }}
-                      fullWidth
-                      sx={{
-                        justifyContent: 'flex-start',
-                        color: 'primary.main',
-                        '&:hover': { bgcolor: 'primary.50' }
-                      }}
-                    >
-                      Delete
-                    </Button>
+                    {isMobile ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <BlueBadge />
+                        <Typography
+                          variant='subtitle1'
+                          sx={{
+                            fontWeight: 600,
+                            textDecoration: 'underline',
+                            cursor: 'pointer'
+                          }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            window.open(
+                              `${window.location.origin}/view/${claimId}`,
+                              '_blank'
+                            )
+                          }}
+                        >
+                          {getCredentialName(claim)}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ mt: '5px' }}>
+                            <BlueBadge />
+                          </Box>
+                          <Typography
+                            sx={{
+                              fontWeight: 'bold',
+                              fontSize: '1.25rem',
+                              textDecoration: 'underline',
+                              cursor: 'pointer'
+                            }}
+                            onClick={e => {
+                              e.stopPropagation()
+                              window.open(
+                                `${window.location.origin}/view/${claimId}`,
+                                '_blank'
+                              )
+                            }}
+                          >
+                            {getCredentialName(claim)}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              color: 'text.secondary',
+                              fontWeight: 'bold',
+                              fontSize: '1.25rem'
+                            }}
+                          >
+                            {getTimeAgo(claim.issuanceDate || new Date().toISOString())}
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ color: 'text.secondary' }}>
+                          {claim.credentialSubject?.name} - {getCredentialType(claim)} -{' '}
+                          {getTimeDifference(
+                            claim.issuanceDate || new Date().toISOString()
+                          )}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {isMobile ? (
+                      <IconButton
+                        size='small'
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleCardClick(claimId)
+                        }}
+                      >
+                        <KeyboardArrowDownIcon
+                          sx={{
+                            transform:
+                              expandedCard === claimId ? 'rotate(180deg)' : 'none',
+                            transition: 'transform 0.3s'
+                          }}
+                        />
+                      </IconButton>
+                    ) : (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            border: '1px solid',
+                            borderColor: 'primary.main',
+                            borderRadius: '100px',
+                            overflow: 'hidden',
+                            bgcolor: 'primary.50'
+                          }}
+                        >
+                          <Button
+                            onClick={e => handleRecommendationClick(claimId, e)}
+                            startIcon={<SVGHeart />}
+                            sx={{
+                              bgcolor: '#eff6ff',
+                              borderColor: '#eff6ff',
+                              '&:hover': { bgcolor: 'primary.100' },
+                              p: '2px 20px',
+                              backgroundColor: '#f0f6ff',
+                              fontSize: '12px',
+                              fontWeight: 'medium',
+                              color: '#003fe0'
+                            }}
+                          >
+                            Ask for a recommendation
+                          </Button>
+                          <Divider orientation='vertical' flexItem color='#003fe0' />
+                          <Button
+                            startIcon={<ContentCopyIcon />}
+                            onClick={e => handleCopyUrl(claimId, e)}
+                            sx={{
+                              bgcolor: '#eff6ff',
+                              '&:hover': { bgcolor: 'primary.100' },
+                              p: '2px 20px',
+                              backgroundColor: '#f0f6ff',
+                              fontSize: '12px',
+                              fontWeight: 'medium',
+                              color: '#003fe0'
+                            }}
+                          >
+                            Copy URL
+                          </Button>
+                        </Box>
+                        <IconButton onClick={e => handleDesktopMenuOpen(e, claim)}>
+                          <MoreVertIcon />
+                        </IconButton>
+                      </Box>
+                    )}
                   </Box>
-                </Collapse>
-              )}
-            </Paper>
-          ))}
+
+                  {isMobile && (
+                    <Collapse in={expandedCard === claimId}>
+                      <Box
+                        sx={{
+                          mt: 2,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1
+                        }}
+                      >
+                        <Button
+                          startIcon={<SVGHeart />}
+                          endIcon={<SVGExport />}
+                          onClick={e => handleRecommendationClick(claimId, e)}
+                          fullWidth
+                          sx={{
+                            justifyContent: 'flex-start',
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.50' }
+                          }}
+                        >
+                          Ask for a recommendation
+                        </Button>
+                        <Button
+                          startIcon={<VisibilityIcon sx={{ color: 'primary.main' }} />}
+                          endIcon={<SVGExport />}
+                          onClick={e => handleViewClaimClick(claimId, e)}
+                          fullWidth
+                          sx={{
+                            justifyContent: 'flex-start',
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.50' }
+                          }}
+                        >
+                          View Claim
+                        </Button>
+                        <Button
+                          startIcon={<SVGLinkedIn />}
+                          endIcon={<SVGExport />}
+                          fullWidth
+                          sx={{
+                            justifyContent: 'flex-start',
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.50' }
+                          }}
+                          onClick={() => handleLinkedInShare(claim)}
+                        >
+                          Share to LinkedIn
+                        </Button>
+                        <Button
+                          startIcon={<SVGEmail />}
+                          endIcon={<SVGExport />}
+                          onClick={e => handleEmailShare(claim, e)}
+                          fullWidth
+                          sx={{
+                            justifyContent: 'flex-start',
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.50' }
+                          }}
+                        >
+                          Share via Email
+                        </Button>
+                        <Button
+                          startIcon={<SVGCopy />}
+                          onClick={e => handleCopyUrl(claimId, e)}
+                          fullWidth
+                          sx={{
+                            justifyContent: 'flex-start',
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.50' }
+                          }}
+                        >
+                          Copy URL
+                        </Button>
+                        <Button
+                          startIcon={<DeleteIcon />}
+                          onClick={e => {
+                            e.stopPropagation()
+                            setSelectedClaim(claim)
+                            setOpenDeleteDialog(true)
+                          }}
+                          fullWidth
+                          sx={{
+                            justifyContent: 'flex-start',
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.50' }
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </Collapse>
+                  )}
+                </Paper>
+              )
+            } catch (error) {
+              console.error('Error rendering claim:', error, claim)
+              return (
+                <Paper
+                  key={`error-${index}`}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: '#ffebee',
+                    border: '1px solid #f44336'
+                  }}
+                >
+                  <Typography color='error'>
+                    Error loading credential. Please refresh the page.
+                  </Typography>
+                </Paper>
+              )
+            }
+          })}
         </Box>
       )}
 
@@ -807,7 +918,7 @@ const ClaimsPageClient: React.FC = () => {
         >
           <MenuItem
             onClick={e => {
-              handleViewClaimClick(selectedClaim.id.id, e)
+              handleViewClaimClick(getClaimId(selectedClaim), e)
               handleDesktopMenuClose()
             }}
             sx={{ py: 1.5, gap: 2 }}
@@ -846,7 +957,7 @@ const ClaimsPageClient: React.FC = () => {
           </MenuItem>
           <MenuItem
             onClick={e => {
-              handleCopyUrl(selectedClaim?.id.id, e)
+              handleCopyUrl(getClaimId(selectedClaim), e)
               handleDesktopMenuClose()
             }}
             sx={{ py: 1.5, gap: 2 }}
