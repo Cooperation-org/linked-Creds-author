@@ -228,6 +228,7 @@ const ClaimsPageClient: React.FC = () => {
   const [claims, setClaims] = useState<any[]>([])
   console.log(': claims', claims)
   const [loading, setLoading] = useState(true)
+  const [initialFetchCompleted, setInitialFetchCompleted] = useState(false)
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedClaim, setSelectedClaim] = useState<any>(null)
@@ -419,18 +420,24 @@ const ClaimsPageClient: React.FC = () => {
 
   useEffect(() => {
     const fetchClaims = async () => {
+      if (!storage) {
+        return // Don't fetch if storage is not available yet
+      }
+
       try {
         setLoading(true)
         const claimsData = await getAllClaims()
-        setClaims(claimsData)
-        setLoading(false)
+        setClaims(claimsData || [])
       } catch (error) {
         console.error('Error fetching claims:', error)
+        setClaims([])
+      } finally {
         setLoading(false)
+        setInitialFetchCompleted(true)
       }
     }
     fetchClaims()
-  }, [getAllClaims])
+  }, [getAllClaims, storage])
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -517,7 +524,7 @@ const ClaimsPageClient: React.FC = () => {
         </Box>
       )}
 
-      {claims.length === 0 && !loading && !accessToken && (
+      {claims.length === 0 && !loading && !accessToken && initialFetchCompleted && (
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
           <Typography variant='h6'>
             Please Sign in to be able to see your skills.
@@ -525,13 +532,13 @@ const ClaimsPageClient: React.FC = () => {
         </Box>
       )}
 
-      {claims.length === 0 && !loading && accessToken && (
+      {claims.length === 0 && !loading && accessToken && initialFetchCompleted && (
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
           <Typography variant='h6'>You don&apos;t have any skills yet.</Typography>
         </Box>
       )}
 
-      {loading ? (
+      {loading || !storage ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
