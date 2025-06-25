@@ -7,17 +7,17 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Button,
-  ButtonGroup,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText
+  Button
+  // ButtonGroup,
+  // Menu,
+  // MenuItem,
+  // ListItemIcon,
+  // ListItemText
 } from '@mui/material'
 import { useForm } from 'react-hook-form'
 import { useParams } from 'next/navigation'
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
-import EmailIcon from '@mui/icons-material/Email'
+// import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
+// import EmailIcon from '@mui/icons-material/Email'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import useGoogleDrive from '../../hooks/useGoogleDrive'
 import { NewEmail2 } from '../../Assets/SVGs'
@@ -45,8 +45,8 @@ export default function MailRecommendation() {
   const [messageToCopy, setMessageToCopy] = useState<string>('')
   const { getContent } = useGoogleDrive()
   const [achievementName, setAchievementName] = useState<string>('')
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null)
-  const menuOpen = Boolean(menuAnchorEl)
+  // const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null)
+  // const menuOpen = Boolean(menuAnchorEl)
 
   const { reset } = useForm({
     defaultValues: {
@@ -107,50 +107,50 @@ export default function MailRecommendation() {
     setSnackbarOpen(false)
   }
 
-  const handleMenuClick = (event: MouseEvent<HTMLButtonElement>) => {
-    setMenuAnchorEl(event.currentTarget)
-  }
+  // const handleMenuClick = (event: MouseEvent<HTMLButtonElement>) => {
+  //   setMenuAnchorEl(event.currentTarget)
+  // }
 
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null)
-  }
+  // const handleMenuClose = () => {
+  //   setMenuAnchorEl(null)
+  // }
 
-  const handleSendMailto = () => {
-    try {
-      const subject = `Support Request: Validation of Expertise`
-      const mailToLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(messageToCopy)}`
-      const mailWindow = window.open(mailToLink, '_blank')
-      if (!mailWindow) {
-        window.location.href = mailToLink
-      }
-      showNotification('Mail client opened.')
-    } catch (err) {
-      console.error('Error opening mail client:', err)
-      showNotification('Failed to open mail client')
-    }
-    handleMenuClose()
-  }
+  // const handleSendMailto = () => {
+  //   try {
+  //     const subject = `Support Request: Validation of Expertise`
+  //     const mailToLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(messageToCopy)}`
+  //     const mailWindow = window.open(mailToLink, '_blank')
+  //     if (!mailWindow) {
+  //       window.location.href = mailToLink
+  //     }
+  //     showNotification('Mail client opened.')
+  //   } catch (err) {
+  //     console.error('Error opening mail client:', err)
+  //     showNotification('Failed to open mail client')
+  //   }
+  //   handleMenuClose()
+  // }
 
-  const handleSendGmail = () => {
-    try {
-      const subject = `Support Request: Validation of Expertise`
-      const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(messageToCopy)}`
-      window.open(gmailLink, '_blank')
+  // const handleSendGmail = () => {
+  //   try {
+  //     const subject = `Support Request: Validation of Expertise`
+  //     const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(messageToCopy)}`
+  //     window.open(gmailLink, '_blank')
 
-      navigator.clipboard
-        .writeText(messageToCopy)
-        .then(() => {
-          showNotification('Email body copied to clipboard. Ready to paste in Gmail!')
-        })
-        .catch(err => {
-          console.error('Failed to copy text: ', err)
-          showNotification('Failed to copy text')
-        })
-    } catch (err) {
-      showNotification('Failed to open Gmail')
-    }
-    handleMenuClose()
-  }
+  //     navigator.clipboard
+  //       .writeText(messageToCopy)
+  //       .then(() => {
+  //         showNotification('Email body copied to clipboard. Ready to paste in Gmail!')
+  //       })
+  //       .catch(err => {
+  //         console.error('Failed to copy text: ', err)
+  //         showNotification('Failed to copy text')
+  //       })
+  //   } catch (err) {
+  //     showNotification('Failed to open Gmail')
+  //   }
+  //   handleMenuClose()
+  // }
 
   const copyToClipboard = async () => {
     try {
@@ -159,7 +159,7 @@ export default function MailRecommendation() {
     } catch (err) {
       showNotification('Failed to copy text')
     }
-    handleMenuClose()
+    // handleMenuClose()
   }
 
   if (isLoading) {
@@ -235,13 +235,39 @@ export default function MailRecommendation() {
             fontFamily: 'Lato'
           }}
         >
-          <li style={{ marginBottom: '8px' }}>Use the button below to send an email</li>
           <li style={{ marginBottom: '8px' }}>
-            You can use your default email client or Gmail
+            Use the button below to copy the message
           </li>
-          <li>Alternatively, copy the message and send it manually</li>
+          <li style={{ marginBottom: '8px' }}>
+            Send the copied message via your preferred email client
+          </li>
+          <li>Share the message with people who can provide recommendations</li>
         </ol>
 
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Button
+            onClick={copyToClipboard}
+            variant='contained'
+            startIcon={<ContentCopyIcon />}
+            sx={{
+              borderRadius: '100px',
+              textTransform: 'lowercase',
+              fontFamily: 'Roboto',
+              color: '#FFFFFF',
+              fontSize: '14px',
+              backgroundColor: '#003FE0',
+              width: '100%',
+              maxWidth: '400px',
+              '&:hover': {
+                backgroundColor: '#002bb5'
+              }
+            }}
+          >
+            Copy Message
+          </Button>
+        </Box>
+
+        {/* Commented out ButtonGroup and Menu components
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <ButtonGroup
             variant='contained'
@@ -312,6 +338,7 @@ export default function MailRecommendation() {
             <ListItemText>Copy</ListItemText>
           </MenuItem>
         </Menu>
+        */}
 
         <Box
           sx={{
