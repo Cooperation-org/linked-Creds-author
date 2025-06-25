@@ -373,9 +373,9 @@ const ClaimsPageClient: React.FC = () => {
         setLoading(true)
         const claimsData = await getAllClaims()
         setClaims(claimsData)
+        setLoading(false)
       } catch (error) {
         console.error('Error fetching claims:', error)
-      } finally {
         setLoading(false)
       }
     }
