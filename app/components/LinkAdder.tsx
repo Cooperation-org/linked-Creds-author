@@ -16,8 +16,6 @@ import {
   addAnotherIconStyles
 } from './Styles/appStyles'
 import { handleUrlValidation } from '../utils/urlValidation'
-import FileDownloadIcon from '@mui/icons-material/FileDownload'
-import FileUploadIcon from '@mui/icons-material/FileUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
 
 interface LinkItem {
@@ -136,12 +134,6 @@ const LinkAdder: React.FC<LinkAdderProps> = ({
             >
               <IconButton sx={{ color: 'white', '&:hover': { bgcolor: 'slate.800' } }}>
                 <DeleteIcon type='button' onClick={() => onRemove(index)} />
-              </IconButton>
-              <IconButton sx={{ color: 'white', '&:hover': { bgcolor: 'slate.800' } }}>
-                <FileUploadIcon />
-              </IconButton>
-              <IconButton sx={{ color: 'white', '&:hover': { bgcolor: 'slate.800' } }}>
-                <FileDownloadIcon />
               </IconButton>
             </Box>
           </Card>
