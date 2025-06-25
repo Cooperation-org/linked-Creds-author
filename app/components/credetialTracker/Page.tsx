@@ -13,6 +13,74 @@ import { FormData } from '../../credentialForm/form/types/Types'
 import { Logo } from '../../Assets/SVGs'
 import Image from 'next/image'
 import { commonTypographyStyles, evidenceListStyles } from '../Styles/appStyles'
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist'
+
+// Set up PDF.js worker
+GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
+
+// Helper functions for file type detection
+const isPDF = (fileName: string) => fileName.toLowerCase().endsWith('.pdf')
+const isMP4 = (fileName: string) => fileName.toLowerCase().endsWith('.mp4')
+const isGoogleDriveImageUrl = (url: string): boolean => {
+  return /https:\/\/drive\.google\.com\/uc\?export=view&id=.+/.test(url)
+}
+
+// PDF thumbnail generation
+const renderPDFThumbnail = async (fileUrl: string): Promise<string> => {
+  try {
+    const loadingTask = getDocument({ url: fileUrl })
+    const pdf = await loadingTask.promise
+    const page = await pdf.getPage(1)
+    const viewport = page.getViewport({ scale: 1 })
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Could not get 2D context')
+
+    canvas.height = viewport.height
+    canvas.width = viewport.width
+    await page.render({ canvasContext: context, viewport }).promise
+    return canvas.toDataURL()
+  } catch (error) {
+    console.error('Error rendering PDF thumbnail:', error)
+    return '/fallback-pdf-thumbnail.svg'
+  }
+}
+
+// Video thumbnail generation
+const generateVideoThumbnail = (videoUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.src = videoUrl
+    video.addEventListener(
+      'loadeddata',
+      () => {
+        video.currentTime = 1
+      },
+      { once: true }
+    )
+    video.addEventListener(
+      'seeked',
+      () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Could not get 2D canvas context'))
+          return
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const dataURL = canvas.toDataURL('image/png')
+        resolve(dataURL)
+      },
+      { once: true }
+    )
+
+    video.addEventListener('error', e => {
+      reject(e)
+    })
+  })
+}
 
 // Styled components
 const HeaderContainer = styled(Paper)(({ theme }) => ({
@@ -110,13 +178,45 @@ const Field: React.FC<FieldProps> = ({ label, value, isHtml }) => (
 
 interface CredentialTrackerProps {
   formData?: FormData
+  selectedFiles?: {
+    id: string
+    name: string
+    url: string
+    isFeatured?: boolean
+  }[]
 }
 
-const CredentialTracker: React.FC<CredentialTrackerProps> = ({ formData }) => {
+const CredentialTracker: React.FC<CredentialTrackerProps> = ({
+  formData,
+  selectedFiles = []
+}) => {
+  const [pdfThumbnails, setPdfThumbnails] = useState<Record<string, string>>({})
+  const [videoThumbnails, setVideoThumbnails] = useState<Record<string, string>>({})
+
+  // Generate thumbnails for PDF and video files
+  useEffect(() => {
+    selectedFiles.forEach(async file => {
+      if (isPDF(file.name) && !pdfThumbnails[file.id]) {
+        const thumbnail = await renderPDFThumbnail(file.url)
+        setPdfThumbnails(prev => ({ ...prev, [file.id]: thumbnail }))
+      }
+
+      if (isMP4(file.name) && !videoThumbnails[file.id]) {
+        try {
+          const thumbnail = await generateVideoThumbnail(file.url)
+          setVideoThumbnails(prev => ({ ...prev, [file.id]: thumbnail }))
+        } catch (error) {
+          console.error('Error generating video thumbnail:', error)
+          setVideoThumbnails(prev => ({
+            ...prev,
+            [file.id]: '/fallback-video.png'
+          }))
+        }
+      }
+    })
+  }, [selectedFiles, pdfThumbnails, videoThumbnails])
+
   // Helper for Evidence section
-  const isGoogleDriveImageUrl = (url: string): boolean => {
-    return /https:\/\/drive\.google\.com\/uc\?export=view&id=.+/.test(url)
-  }
   const shouldDisplayUrl = (url: string): boolean => {
     return !isGoogleDriveImageUrl(url)
   }
@@ -128,6 +228,9 @@ const CredentialTracker: React.FC<CredentialTrackerProps> = ({ formData }) => {
       Array.isArray(formData.portfolio) &&
       formData.portfolio.some((p: any) => p.name && p.url)) ||
     (formData?.evidenceLink && shouldDisplayUrl(formData.evidenceLink))
+
+  // Get featured media file
+  const featuredFile = selectedFiles.find(f => f.isFeatured)
 
   return (
     <Box sx={{ p: 0, width: '100%', maxWidth: '720px' }}>
@@ -184,10 +287,53 @@ const CredentialTracker: React.FC<CredentialTrackerProps> = ({ formData }) => {
                     value={formData?.credentialDescription as string}
                     isHtml={true}
                   />
-                  {/* Media Section using Next.js Image */}
+                  {/* Enhanced Media Section with PDF support */}
                   <MediaContainer>
-                    <Media hasImage={!!formData?.evidenceLink}>
-                      {formData?.evidenceLink ? (
+                    <Media hasImage={!!featuredFile || !!formData?.evidenceLink}>
+                      {featuredFile ? (
+                        // Handle different file types with proper thumbnails
+                        <>
+                          {isPDF(featuredFile.name) ? (
+                            <Image
+                              width={160}
+                              height={153}
+                              style={{
+                                borderRadius: '10px',
+                                objectFit: 'cover'
+                              }}
+                              src={
+                                pdfThumbnails[featuredFile.id] ??
+                                '/fallback-pdf-thumbnail.svg'
+                              }
+                              alt='PDF Preview'
+                            />
+                          ) : isMP4(featuredFile.name) ? (
+                            <Image
+                              width={160}
+                              height={153}
+                              style={{
+                                borderRadius: '10px',
+                                objectFit: 'cover'
+                              }}
+                              src={
+                                videoThumbnails[featuredFile.id] ?? '/fallback-video.png'
+                              }
+                              alt='Video Thumbnail'
+                            />
+                          ) : (
+                            <Image
+                              src={featuredFile.url}
+                              alt='Featured Media'
+                              width={160}
+                              height={153}
+                              style={{
+                                borderRadius: '10px',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          )}
+                        </>
+                      ) : formData?.evidenceLink ? (
                         <Image
                           src={formData.evidenceLink}
                           alt='Featured Media'
