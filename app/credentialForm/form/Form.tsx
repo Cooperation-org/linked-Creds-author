@@ -360,7 +360,7 @@ const Form = ({ onStepChange }: any) => {
         {snackMessage ? <SnackMessage message={snackMessage} /> : ''}
       </form>
 
-      {activeStep >= 1 && (
+      {activeStep >= 1 && activeStep <= 4 && (
         <CredentialTracker formData={watch()} selectedFiles={selectedFiles} />
       )}
     </Box>
