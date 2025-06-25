@@ -139,8 +139,8 @@ const Footer: React.FC = () => {
             />
             <FooterItem
               icon={<EmailIcon />}
-              text='support@lc.allskillscount.org'
-              href='mailto:support@lc.allskillscount.org'
+              text='lc.support@allskillscount.org'
+              href='mailto:lc.support@allskillscount.org'
             />
           </Box>
         ) : isTablet ? (
@@ -194,8 +194,8 @@ const Footer: React.FC = () => {
               />
               <FooterItem
                 icon={<EmailIcon />}
-                text='support@lc.allskillscount.org'
-                href='mailto:support@lc.allskillscount.org'
+                text='lc.support@allskillscount.org'
+                href='mailto:lc.support@allskillscount.org'
               />
             </Box>
           </Box>
@@ -235,8 +235,8 @@ const Footer: React.FC = () => {
             />
             <FooterItem
               icon={<EmailIcon />}
-              text='support@lc.allskillscount.org'
-              href='mailto:support@lc.allskillscount.org'
+              text='lc.support@allskillscount.org'
+              href='mailto:lc.support@allskillscount.org'
             />
           </Box>
         )}
