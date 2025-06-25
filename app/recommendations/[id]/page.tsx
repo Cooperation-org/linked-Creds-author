@@ -8,6 +8,7 @@ import { useStepContext } from '../../credentialForm/form/StepContext'
 import useGoogleDrive from '../../hooks/useGoogleDrive'
 import { useParams } from 'next/navigation'
 import Form from './RecommandationForm/Form'
+import { getFileViaFirebase } from '../../firebase/storage'
 
 const CredentialData = () => {
   const { activeStep, setActiveStep } = useStepContext()
@@ -32,12 +33,15 @@ const CredentialData = () => {
       }
 
       try {
-        const content = await storage?.retrieve(id)
-        const credentialSubject = content?.data?.credentialSubject
+        let vcData = await getFileViaFirebase(id)
+        vcData = JSON.parse(vcData.body)
+
+        const credentialSubject = vcData?.credentialSubject
+
         if (credentialSubject?.name) {
           setFullName(credentialSubject.name)
         } else {
-          setFullName('User')
+          setFullName('the credential holder')
         }
 
         await fetchFileMetadata(id)
