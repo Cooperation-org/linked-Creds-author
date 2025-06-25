@@ -189,6 +189,18 @@ const withResolversPolyfill = <T,>() => {
   return { promise, resolve, reject }
 }
 
+const isSkillCredential = (claim: any): boolean => {
+  return (
+    claim &&
+    claim.credentialSubject &&
+    claim.credentialSubject.achievement &&
+    Array.isArray(claim.credentialSubject.achievement) &&
+    claim.credentialSubject.achievement.length > 0 &&
+    claim.credentialSubject.achievement[0] &&
+    claim.credentialSubject.achievement[0].name
+  )
+}
+
 const ClaimsPageClient: React.FC = () => {
   const [claims, setClaims] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -316,7 +328,7 @@ const ClaimsPageClient: React.FC = () => {
         console.log('🚀 ~ getAllClaims ~ parsedVCs:', parsedVCs)
         if (Array.isArray(parsedVCs) && parsedVCs.length > 0) {
           console.log('Returning cached VCs from localStorage')
-          claimsData = parsedVCs
+          claimsData = parsedVCs.filter(isSkillCredential)
         }
       } catch (error) {
         console.error('Error parsing cached VCs from localStorage:', error)
@@ -333,10 +345,13 @@ const ClaimsPageClient: React.FC = () => {
         try {
           const content = JSON.parse(file?.data?.body)
           if (content && '@context' in content) {
-            vcs.push({
+            const credential = {
               ...content,
               id: file
-            })
+            }
+            if (isSkillCredential(credential)) {
+              vcs.push(credential)
+            }
           }
         } catch (error) {
           console.error(`Error processing file ${file}:`, error)
@@ -349,7 +364,8 @@ const ClaimsPageClient: React.FC = () => {
       console.error('Error fetching claims from drive:', error)
       const fallback = localStorage.getItem('vcs')
       if (fallback) {
-        return JSON.parse(fallback)
+        const parsed = JSON.parse(fallback)
+        return Array.isArray(parsed) ? parsed.filter(isSkillCredential) : []
       }
       return []
     }
@@ -463,7 +479,7 @@ const ClaimsPageClient: React.FC = () => {
         </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {claims.map(claim => (
+          {claims.filter(isSkillCredential).map(claim => (
             <Paper
               key={claim.id}
               onClick={() => handleCardClick(claim.id)}
