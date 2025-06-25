@@ -366,12 +366,13 @@ const ClaimsPageClient: React.FC = () => {
       const params = new URLSearchParams({
         startTask: 'CERTIFICATION_NAME',
         name: credentialName,
-        organizationName: 'Self-Issued',
+        organizationName: 'LinkedTrust',
         issueYear: issuanceDate.getFullYear().toString(),
         issueMonth: (issuanceDate.getMonth() + 1).toString(),
         expirationYear: expirationDate.getFullYear().toString(),
         expirationMonth: (expirationDate.getMonth() + 1).toString(),
-        certUrl: `https://linkedcreds.allskillscount.com/view/${claimId}`
+        certUrl: `https://linkedcreds.allskillscount.org/view/${claimId}`,
+        certId: claimId
       })
       return `${baseLinkedInUrl}?${params.toString()}`
     } catch (error) {
