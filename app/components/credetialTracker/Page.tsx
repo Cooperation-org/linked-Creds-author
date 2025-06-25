@@ -77,16 +77,16 @@ const MediaContainer = styled(Box)(({ theme }) => ({
   flexDirection: 'column'
 }))
 
-const Media = styled(Box)({
+const Media = styled(Box)<{ hasImage?: boolean }>(({ hasImage }) => ({
   width: '160.506px',
   height: '153.129px',
   position: 'relative',
-  backgroundImage: 'url(/images/SkillMedia.svg)',
+  backgroundImage: hasImage ? 'none' : 'url(/images/SkillMedia.svg)',
   backgroundSize: '100% 100%',
   backgroundRepeat: 'no-repeat',
   overflow: 'hidden',
   margin: '0 auto'
-})
+}))
 
 // Field component for consistent styling
 interface FieldProps {
@@ -186,7 +186,7 @@ const CredentialTracker: React.FC<CredentialTrackerProps> = ({ formData }) => {
                   />
                   {/* Media Section using Next.js Image */}
                   <MediaContainer>
-                    <Media>
+                    <Media hasImage={!!formData?.evidenceLink}>
                       {formData?.evidenceLink ? (
                         <Image
                           src={formData.evidenceLink}
