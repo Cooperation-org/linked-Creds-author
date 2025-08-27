@@ -23,35 +23,32 @@ export function OPTIONS() {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { txId: string } }
+  context: { params: { txId: string } }
 ) {
   const url = new URL(request.url);
   console.log('🚀 ~ GET ~ url:', url)
-  const txId = params?.txId || url.pathname.split("/").pop();
+  const txId = context.params?.txId || url.pathname.split("/").pop();
 
-  console.log("🚀 ~ handler ~ txId:", txId);
+  console.log("🚀 ~ GET ~ txId:", txId);
 
   if (!txId) {
     return NextResponse.json(
-      { error: 'Transaction id is required.' },
+      { error: "Transaction id is required." },
       { status: 400, headers: corsHeaders }
-    )
+    );
   }
-
-  console.log('Looking for tx', txId, exchanges.get(txId))
 
   if (exchanges.has(txId)) {
     return new NextResponse(exchanges.get(txId), {
       status: 200,
       headers: corsHeaders
-    })
-  } else {
-    console.log('Incoming GET: tx not found.')
-    return new NextResponse('Not found', {
-      status: 404,
-      headers: corsHeaders
-    })
+    });
   }
+
+  return new NextResponse("Not found", {
+    status: 404,
+    headers: corsHeaders
+  });
 }
 
 /**
