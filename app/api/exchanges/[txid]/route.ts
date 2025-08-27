@@ -25,8 +25,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { txId: string } }
 ) {
-  const { txId } = params
-  console.log('🚀 ~ handler ~ txId:', txId)
+  const url = new URL(request.url);
+  console.log('🚀 ~ GET ~ url:', url)
+  const txId = params?.txId || url.pathname.split("/").pop();
+
+  console.log("🚀 ~ handler ~ txId:", txId);
 
   if (!txId) {
     return NextResponse.json(
