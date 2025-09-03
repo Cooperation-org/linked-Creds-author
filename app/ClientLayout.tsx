@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation'
 import background from './Assets/Images/Background.svg'
 import Providers from './components/signing/Providers'
 import AppDidInitializer from './components/AppDidInitializer'
+import { AppDidProvider } from './contexts/AppDidContext'
 
 export default function ClientLayout({
   children
@@ -28,33 +29,35 @@ export default function ClientLayout({
       <ThemeProvider theme={Theme}>
         <CssBaseline />
         <Providers>
-          <StepProvider>
-            <NavBar />
-            <Box
-              component='main'
-              sx={{
-                flexGrow: 1,
-                minHeight: `calc(100vh - 315px)`,
-                backgroundImage: pathname === '/' ? `url(${background.src})` : 'none',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                pb: '60px',
-                backgroundBlendMode: pathname === '/' ? 'overlay' : 'normal',
-                backgroundColor:
-                  pathname === '/'
-                    ? {
-                        xs: 'rgba(255, 255, 255, 0.8)',
-                        md: 'rgba(255, 255, 255, 0.85)'
-                      }
-                    : '#F0F4F8'
-              }}
-            >
-              <AppDidInitializer />
-              {children}
-            </Box>
-            <Footer />
-          </StepProvider>
+          <AppDidProvider>
+            <StepProvider>
+              <NavBar />
+              <Box
+                component='main'
+                sx={{
+                  flexGrow: 1,
+                  minHeight: `calc(100vh - 315px)`,
+                  backgroundImage: pathname === '/' ? `url(${background.src})` : 'none',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  pb: '60px',
+                  backgroundBlendMode: pathname === '/' ? 'overlay' : 'normal',
+                  backgroundColor:
+                    pathname === '/'
+                      ? {
+                          xs: 'rgba(255, 255, 255, 0.8)',
+                          md: 'rgba(255, 255, 255, 0.85)'
+                        }
+                      : '#F0F4F8'
+                }}
+              >
+                <AppDidInitializer />
+                {children}
+              </Box>
+              <Footer />
+            </StepProvider>
+          </AppDidProvider>
         </Providers>
       </ThemeProvider>
     </body>
