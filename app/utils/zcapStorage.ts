@@ -112,11 +112,3 @@ export async function uploadFileToWAS(
   }
 }
 
-/**
- * Get WAS file URL for display
- */
-export function getWASFileUrl(fileId: string, baseUrl?: string): string {
-  // This might need adjustment based on the actual WAS URL structure
-  const defaultBaseUrl = 'https://was.example.com' // Replace with actual WAS base URL
-  return `${baseUrl || defaultBaseUrl}/files/${fileId}`
-}
