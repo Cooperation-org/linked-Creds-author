@@ -14,12 +14,23 @@ export async function pollExchange({
   stopPolling: () => void // Stop polling when credential is fetched
 }): Promise<void> {
   const result = await fetch(exchangeUrl, {})
-
   if (result.ok && result.status === 200) {
     const vp = (await result.json()) as any
-    console.log('Fetched vp:', typeof vp, vp)
-    onFetchVP(vp) // Pass the fetched VC back to onFetchVC callback
-    stopPolling() // Stop polling after credential is fetched
+    
+    if (vp.zcap && vp.appInstanceDid) {
+      try {
+        const zcapStorage = {
+          zcap: vp.zcap,
+          appInstanceDid: vp.appInstanceDid,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('zcap', JSON.stringify(zcapStorage));
+        onFetchVP(vp)
+        stopPolling()
+      } catch (error) {
+        console.error('Error storing zCap in localStorage:', error);
+      }
+    }
   }
 }
 
