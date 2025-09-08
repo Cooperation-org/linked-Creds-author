@@ -9,11 +9,11 @@ const STORED = {
       "https://w3id.org/zcap/v1",
       "https://w3id.org/security/suites/ed25519-2020/v1"
     ],
-    "id": "urn:uuid:6a69a822-0e52-4d4c-8ed6-0eaed3578bd9",
-    "controller": "did:key:z6MktN7co79Kv5KmDDgeLkwa8Bdrgteuh6AfCk9pSPz2yV1c",
-    "parentCapability": "urn:zcap:root:https%3A%2F%2Fstorage.dcc.did.coop%2Fspace%2F9b94a290-8a69-493e-9331-61cbfb20fa74",
-    "invocationTarget": "https://storage.dcc.did.coop/space/9b94a290-8a69-493e-9331-61cbfb20fa74",
-    "expires": "2025-09-18T11:08:12.525Z",
+    "id": "urn:uuid:0f766283-82e6-4bd3-b97c-2b8b6bae5913",
+    "controller": "did:key:z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
+    "parentCapability": "urn:zcap:root:https%3A%2F%2Fstorage.dcc.did.coop%2Fspace%2F8f5d68ac-82ed-4ed1-878f-185d5d11ac53",
+    "invocationTarget": "https://storage.dcc.did.coop/space/8f5d68ac-82ed-4ed1-878f-185d5d11ac53",
+    "expires": "2025-09-18T11:16:12.890Z",
     "allowedAction": [
       "GET",
       "POST",
@@ -22,20 +22,20 @@ const STORED = {
     ],
     "proof": {
       "type": "Ed25519Signature2020",
-      "created": "2025-09-08T11:08:32Z",
-      "verificationMethod": "did:key:z6MkotYfNRLSLotHJPaCWhvFK3Z6VH3SKQhLG3mfVy4cuywk#z6MkotYfNRLSLotHJPaCWhvFK3Z6VH3SKQhLG3mfVy4cuywk",
+      "created": "2025-09-08T11:17:53Z",
+      "verificationMethod": "did:key:z6MkfZSGLLTBpv8sL4sscDv3EQKLQAxoFEuSuzEVmLZAEHA6#z6MkfZSGLLTBpv8sL4sscDv3EQKLQAxoFEuSuzEVmLZAEHA6",
       "proofPurpose": "capabilityDelegation",
       "capabilityChain": [
-        "urn:zcap:root:https%3A%2F%2Fstorage.dcc.did.coop%2Fspace%2F9b94a290-8a69-493e-9331-61cbfb20fa74"
+        "urn:zcap:root:https%3A%2F%2Fstorage.dcc.did.coop%2Fspace%2F8f5d68ac-82ed-4ed1-878f-185d5d11ac53"
       ],
-      "proofValue": "z5mscGK5hxmJo1AYk7emnMvV3hyEN9JcWm6DzxBYWkXgUeFqwQbDkyRnRMnMEMfiirr66ge2tvwmJuBpGxcj6zGrP"
+      "proofValue": "z4fm9PU41n94koWD7pxnoJQsJKRAAogaUcMtr9EAa9ixnR7H6PQqTaLwW92jUNnV6skfBHXckarUvnpLFrZ14HPDA"
     }
   },
   appInstance: {
-    "controller": "did:key:z6MktN7co79Kv5KmDDgeLkwa8Bdrgteuh6AfCk9pSPz2yV1c",
-    "id": "did:key:z6MktN7co79Kv5KmDDgeLkwa8Bdrgteuh6AfCk9pSPz2yV1c#z6MktN7co79Kv5KmDDgeLkwa8Bdrgteuh6AfCk9pSPz2yV1c",
-    "publicKeyMultibase": "z6MktN7co79Kv5KmDDgeLkwa8Bdrgteuh6AfCk9pSPz2yV1c",
-    "privateKeyMultibase": "zrv39cRY9zepDmzUTjnSiQjxVpBgis3aSBnhh8LvMY9MjYHH8VDuetCe14T77u4m9YUdroy3jT8grK6DiM6Na51ovtJ"
+    "controller": "did:key:z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
+    "id": "did:key:z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq#z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
+    "publicKeyMultibase": "z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
+    "privateKeyMultibase": "zrv3gesaf3kKcBAh7z2odcHB3rSJBm8bLPjfznZzXMw5utL5L8wPqedyqzgu9PdVYGWffASKfkSLECQdiEQJ9aouwtf"
   }
 }
 // ----------------------------------------------------------------
