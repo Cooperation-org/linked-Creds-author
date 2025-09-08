@@ -14,6 +14,7 @@
   "dependencies": {
     "@cooperation/vc-storage": "^1.0.40",
     "@digitalcredentials/ed25519-signature-2020": "^7.0.0",
+    "@digitalcredentials/ed25519-verification-key-2020": "^5.0.0-beta.1",
     "@digitalcredentials/ezcap": "^5.1.0",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
@@ -43,7 +44,8 @@
     "react-qr-code": "^2.0.18",
     "react-quill": "^2.0.0",
     "resend": "^4.4.1",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "uuid": "^12.0.0"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",
