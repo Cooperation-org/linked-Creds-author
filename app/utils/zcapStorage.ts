@@ -66,7 +66,7 @@ export function clearStoredZcap(): void {
 /**
  * Create a ZcapClient instance for WAS file operations
  */
-export function createZcapClient(config: ZcapClientConfig): ZcapClient {
+export function createZcapClient(config: ZcapClientConfig): any {
   try {
     return new ZcapClient({
       SuiteClass: Ed25519Signature2020,
@@ -83,7 +83,7 @@ export function createZcapClient(config: ZcapClientConfig): ZcapClient {
  */
 export async function uploadFileToWAS(
   file: File,
-  zcapClient: ZcapClient,
+  zcapClient: any,
   capability: any,
   url: string
 ): Promise<{ success: boolean; fileId?: string; error?: string }> {
