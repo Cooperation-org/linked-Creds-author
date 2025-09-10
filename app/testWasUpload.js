@@ -9,11 +9,11 @@ const STORED = {
       "https://w3id.org/zcap/v1",
       "https://w3id.org/security/suites/ed25519-2020/v1"
     ],
-    "id": "urn:uuid:0f766283-82e6-4bd3-b97c-2b8b6bae5913",
-    "controller": "did:key:z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
-    "parentCapability": "urn:zcap:root:https%3A%2F%2Fstorage.dcc.did.coop%2Fspace%2F8f5d68ac-82ed-4ed1-878f-185d5d11ac53",
-    "invocationTarget": "https://storage.dcc.did.coop/space/8f5d68ac-82ed-4ed1-878f-185d5d11ac53",
-    "expires": "2025-09-18T11:16:12.890Z",
+    "id": "urn:uuid:2fdfc092-0dd9-4042-baf0-6a793c010b15",
+    "controller": "did:key:z6MknJ51X2G3VyzJ5VwxwESNJYKonotbLsXYjFR1oHnxYkHJ",
+    "parentCapability": "urn:zcap:root:https%3A%2F%2Fancient-log-copyrights-guardian.trycloudflare.com%2Fspace%2F64f5f687-ec3e-4a37-9f74-482f76cdf033",
+    "invocationTarget": "https://ancient-log-copyrights-guardian.trycloudflare.com/space/64f5f687-ec3e-4a37-9f74-482f76cdf033",
+    "expires": "2025-09-20T10:26:09.029Z",
     "allowedAction": [
       "GET",
       "POST",
@@ -22,20 +22,20 @@ const STORED = {
     ],
     "proof": {
       "type": "Ed25519Signature2020",
-      "created": "2025-09-08T11:17:53Z",
-      "verificationMethod": "did:key:z6MkfZSGLLTBpv8sL4sscDv3EQKLQAxoFEuSuzEVmLZAEHA6#z6MkfZSGLLTBpv8sL4sscDv3EQKLQAxoFEuSuzEVmLZAEHA6",
+      "created": "2025-09-10T10:29:31Z",
+      "verificationMethod": "did:key:z6Mkh5Ea5YT4GPeCf4scpRK2vYhuU7mnysT3vVTiKvAJarTU#z6Mkh5Ea5YT4GPeCf4scpRK2vYhuU7mnysT3vVTiKvAJarTU",
       "proofPurpose": "capabilityDelegation",
       "capabilityChain": [
-        "urn:zcap:root:https%3A%2F%2Fstorage.dcc.did.coop%2Fspace%2F8f5d68ac-82ed-4ed1-878f-185d5d11ac53"
+        "urn:zcap:root:https%3A%2F%2Fancient-log-copyrights-guardian.trycloudflare.com%2Fspace%2F64f5f687-ec3e-4a37-9f74-482f76cdf033"
       ],
-      "proofValue": "z4fm9PU41n94koWD7pxnoJQsJKRAAogaUcMtr9EAa9ixnR7H6PQqTaLwW92jUNnV6skfBHXckarUvnpLFrZ14HPDA"
+      "proofValue": "z4UGdP7TcqCLdakK9RN4we1ZfkpQP7U7GHjbPyz77d7JzUwdTag9VqND8LN5SeFqzZPPR6sJQKJWt9pg5kRh4GTQd"
     }
   },
   appInstance: {
-    "controller": "did:key:z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
-    "id": "did:key:z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq#z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
-    "publicKeyMultibase": "z6MkhT825GkdZVziErLWEKfYaNg6BGhxPDJNNWNpvwAAp3oq",
-    "privateKeyMultibase": "zrv3gesaf3kKcBAh7z2odcHB3rSJBm8bLPjfznZzXMw5utL5L8wPqedyqzgu9PdVYGWffASKfkSLECQdiEQJ9aouwtf"
+    "controller": "did:key:z6Mkt4T2Wr8qKHKbte2JL316vbuWg3ozN2oBWpVWqZVKNhYH",
+    "id": "did:key:z6Mkt4T2Wr8qKHKbte2JL316vbuWg3ozN2oBWpVWqZVKNhYH#z6Mkt4T2Wr8qKHKbte2JL316vbuWg3ozN2oBWpVWqZVKNhYH",
+    "publicKeyMultibase": "z6Mkt4T2Wr8qKHKbte2JL316vbuWg3ozN2oBWpVWqZVKNhYH",
+    "privateKeyMultibase": "zrv2yAMHgXxkGVmqmvwVJ4NxxeJUdZNY5jQupxBZXxY7ZhBnERr9CmCiZ2Mbx6ZaoKQBCJfLLVKMT2dypEzi314NmqP"
   }
 }
 // ----------------------------------------------------------------
@@ -55,7 +55,7 @@ async function main() {
     invocationSigner,
   })
 
-  const blob = new Blob(['Hello local WAS upload!'], { type: 'text/plain' })
+  const blob = new Blob(['Hello local WAS upload!'])
 
   // base = /space/:uuid
   const baseUrl = zcap.invocationTarget
@@ -67,13 +67,16 @@ async function main() {
 
   try {
     console.log('zcap:', zcap)
+    console.log('Attempting upload...')
+
     const response = await zcapClient.request({
       url: wasUrl,
       capability: zcap,
-      method: 'put',
+      method: 'PUT',
       action: 'PUT',
       blob,
     })
+
     console.log('Upload complete!')
     console.log('Response:', response)
   } catch (err) {

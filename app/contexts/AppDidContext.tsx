@@ -1,11 +1,9 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { getStoredZcap } from '../utils/zcapStorage'
 
 interface AppDidContextType {
-  appDidSigner: any
-  setAppDidSigner: (signer: any) => void
+  appInstanceDid: any
   hasZcap: boolean
   zcapInfo: any
 }
@@ -17,24 +15,32 @@ interface AppDidProviderProps {
 }
 
 export function AppDidProvider({ children }: AppDidProviderProps) {
-  const [appDidSigner, setAppDidSigner] = useState<any>(null)
   const [zcapInfo, setZcapInfo] = useState<any>(null)
+  const [appInstanceDid, setAppInstanceDid] = useState<any>(null)
 
   useEffect(() => {
     // Check for stored zCap on mount
-    const storedZcap = getStoredZcap()
+    const storedZcap = localStorage.getItem('zcap')
+    const storedAppInstanceDid = localStorage.getItem('AppInstanceDID')
     if (storedZcap) {
       setZcapInfo(storedZcap)
+    }
+    if (storedAppInstanceDid) {
+      try {
+        const appInstanceDidObject = JSON.parse(storedAppInstanceDid)
+        setAppInstanceDid(appInstanceDidObject)
+      } catch (error) {
+        console.error('Error parsing stored AppInstanceDID:', error)
+      }
     }
   }, [])
 
   const hasZcap = !!zcapInfo
 
   const value: AppDidContextType = {
-    appDidSigner,
-    setAppDidSigner,
+    appInstanceDid,
     hasZcap,
-    zcapInfo
+    zcapInfo,
   }
 
   return (

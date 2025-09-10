@@ -43,6 +43,7 @@ interface Portfolio {
   name: string
   url: string
   googleId?: string
+  wasId?: string
 }
 
 // Interfaces for the form fields
@@ -84,4 +85,5 @@ export interface FileItem {
   uploaded: boolean
   fileExtension: string
   googleId?: string
+  wasId?: string
 }
