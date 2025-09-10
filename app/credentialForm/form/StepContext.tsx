@@ -25,7 +25,7 @@ const StepContext = createContext<StepContextType>({
   handleNext: async () => {},
   handleBack: () => {},
   handleSkip: () => {},
-  setUploadImageFn: () => () => {}
+  setUploadImageFn: (_fn: () => Promise<void>) => {}
 })
 
 export const StepProvider = ({ children }: { children: React.ReactNode }) => {
@@ -116,17 +116,25 @@ export const StepProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveStep(prevStep => prevStep + 1)
   }, [])
 
+  // Ensure passing function as value, not as state updater
+  const setUploadImageFnSafe = useCallback(
+    (fn: () => Promise<void>) => {
+      setUploadImageFn(() => fn)
+    },
+    []
+  )
+
   const contextValue = useMemo(
     () => ({
       activeStep,
       setActiveStep,
       handleNext,
       handleBack,
-      setUploadImageFn,
+      setUploadImageFn: setUploadImageFnSafe,
       loading,
       handleSkip
     }),
-    [activeStep, handleNext, handleBack, setUploadImageFn, loading, handleSkip]
+    [activeStep, handleNext, handleBack, setUploadImageFnSafe, loading, handleSkip]
   )
 
   return <StepContext.Provider value={contextValue}>{children}</StepContext.Provider>

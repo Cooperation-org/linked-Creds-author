@@ -23,8 +23,9 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "**/*.d.ts",
     ".next/types/**/*.ts",
     "app/Assets/SVGs/index.jsx"
-  ],
+, "app/testWasUpload.js"  ],
   "exclude": ["node_modules"]
 }

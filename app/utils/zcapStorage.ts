@@ -67,10 +67,15 @@ export function clearStoredZcap(): void {
  * Create a ZcapClient instance for WAS file operations
  */
 export function createZcapClient(config: ZcapClientConfig): ZcapClient {
-  return new ZcapClient({
-    SuiteClass: Ed25519Signature2020,
-    invocationSigner: config.appDidSigner
-  })
+  try {
+    return new ZcapClient({
+      SuiteClass: Ed25519Signature2020,
+      invocationSigner: config.appDidSigner
+    })
+  } catch (error) {
+    console.error('Error creating ZcapClient:', error)
+    return null
+  }
 }
 
 /**
@@ -105,6 +110,9 @@ export async function uploadFileToWAS(
     }
   } catch (error) {
     console.error('❌ Error uploading file to WAS:', error)
+    // details log
+    console.error('❌ Error uploading file to WAS:', JSON.stringify(error, null, 2))
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

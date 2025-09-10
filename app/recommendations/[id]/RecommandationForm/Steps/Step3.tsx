@@ -8,11 +8,13 @@ import FileListDisplay from '../../../../components/FileList'
 import { GoogleDriveStorage, uploadToGoogleDrive } from '@cooperation/vc-storage'
 import useGoogleDrive from '../../../../hooks/useGoogleDrive'
 import { useStepContext } from '../../../../credentialForm/form/StepContext'
+import { useAppDid } from '../../../../contexts/AppDidContext'
 import LoadingOverlay from '../../../../components/Loading/LoadingOverlay'
 import { TasksVector, SVGUplaodLink, SVGUploadMedia } from '../../../../Assets/SVGs'
 import { FileItem } from '../../../../credentialForm/form/types/Types'
 import LinkAdder from '../../../../components/LinkAdder'
 import { formLabelStyles } from '../../../../components/Styles/appStyles'
+import { useHandleUpload } from '../../../../hooks/handleUpload'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -60,6 +62,7 @@ const FileUploadAndList: React.FC<FileUploadAndListProps> = ({
   watch
 }) => {
   const { loading, setUploadImageFn } = useStepContext()
+  const { appInstanceDid, hasZcap } = useAppDid()
   const [showLinkAdder, setShowLinkAdder] = useState(false)
   const { storage } = useGoogleDrive()
   const [files, setFiles] = useState<FileItem[]>([...selectedFiles])
@@ -113,56 +116,16 @@ const FileUploadAndList: React.FC<FileUploadAndListProps> = ({
     [setValue, watch, setSelectedFiles]
   )
 
-  const handleUpload = useCallback(async () => {
-    try {
-      if (selectedFiles.length === 0) return
-      const filesToUpload = selectedFiles.filter(
-        fileItem => !fileItem.uploaded && fileItem.file && fileItem.name
-      )
-      if (filesToUpload.length === 0) return
-      const uploadedFiles = await Promise.all(
-        filesToUpload.map(async (fileItem, index) => {
-          const newFile = new File([fileItem.file], fileItem.name, {
-            type: fileItem.file.type
-          })
-          const uploadedFile = await storage?.uploadBinaryFile({
-            file: newFile
-          })
-          const fileId = (uploadedFile as { id: string }).id
-          return {
-            ...fileItem,
-            googleId: fileId,
-            uploaded: true,
-            isFeatured: index === 0 && !watch<string>('evidenceLink')
-          }
-        })
-      )
-      const featuredFile = uploadedFiles.find(file => file.isFeatured)
-      if (featuredFile?.googleId) {
-        setValue(
-          'evidenceLink',
-          `https://drive.google.com/uc?export=view&id=${featuredFile.googleId}`
-        )
-      }
-      const currentPortfolio = watch<PortfolioItem[]>('portfolio') || []
-      const newPortfolioEntries: PortfolioItem[] = uploadedFiles.map(file => ({
-        name: file.name,
-        url: `https://drive.google.com/uc?export=view&id=${file.googleId}`,
-        googleId: file.googleId
-      }))
-      setValue('portfolio', [...currentPortfolio, ...newPortfolioEntries])
-      setSelectedFiles(prevFiles =>
-        prevFiles.map(file => {
-          const uploadedFile = uploadedFiles.find(f => f.name === file.name)
-          return uploadedFile
-            ? { ...file, googleId: uploadedFile.googleId, uploaded: true }
-            : file
-        })
-      )
-    } catch (error) {
-      console.error('Error uploading files:', error)
-    }
-  }, [selectedFiles, setValue, setSelectedFiles, storage, watch])
+  const handleUpload = useHandleUpload({
+    selectedFiles: selectedFiles as FileItem[],
+    setValue,
+    setSelectedFiles,
+    watch,
+    appInstanceDid,
+    hasZcap,
+    storage: storage as GoogleDriveStorage,
+    useWas: true,
+  })
   const handleAddLink = useCallback(() => {
     setLinks(prev => [...prev, { id: crypto.randomUUID(), name: '', url: '' }])
   }, [])
@@ -243,8 +206,7 @@ const FileUploadAndList: React.FC<FileUploadAndListProps> = ({
     [setValue, watch, files, setSelectedFiles]
   )
   useEffect(() => {
-    // @ts-ignore-next-line
-    setUploadImageFn(() => handleUpload)
+    setUploadImageFn(handleUpload)
   }, [handleUpload, setUploadImageFn])
 
   // Drag and drop functionality
