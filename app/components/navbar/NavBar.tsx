@@ -36,7 +36,7 @@ const NavBar = () => {
         alignItems: 'center',
         backgroundColor: 'white',
         justifyContent: 'space-between',
-        my: { xs: '18px', md: '0px' },
+        mt: { xs: '18px', md: '0px' },
         boxShadow: {
           md: '0px 4px 10px rgba(209, 213, 219, 0.5)'
         }
@@ -201,44 +201,23 @@ const NavBar = () => {
                 )}
               </Box>
             </Link>
-
-            {/* Uncomment these links when needed */}
-            {/* 
-            <Link href='/about' passHref>
+            <Link href='/help' passHref>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Typography
                   sx={{
                     fontSize: '16px',
-                    fontWeight: isActive('/about') ? '600' : '400',
-                    color: isActive('/about') ? '#003FE0' : theme.palette.t3DarkSlateBlue,
+                    fontWeight: isActive('/help') ? '600' : '400',
+                    color: isActive('/help') ? '#003FE0' : theme.palette.t3DarkSlateBlue,
                     cursor: 'pointer'
                   }}
                 >
-                  About LinkedCreds
+                  Help & FAQ
                 </Typography>
-                {isActive('/about') && (
+                {isActive('/help') && (
                   <Box sx={{ height: '2px', width: '100%', mt: '5px', backgroundColor: '#003FE0' }} />
                 )}
               </Box>
             </Link>
-            <Link href='/support' passHref>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Typography
-                  sx={{
-                    fontSize: '16px',
-                    fontWeight: isActive('/support') ? '600' : '400',
-                    color: isActive('/support') ? '#003FE0' : theme.palette.t3DarkSlateBlue,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Support
-                </Typography>
-                {isActive('/support') && (
-                  <Box sx={{ height: '2px', width: '100%', mt: '5px', backgroundColor: '#003FE0' }} />
-                )}
-              </Box>
-            </Link>
-            */}
           </>
         )}
 
