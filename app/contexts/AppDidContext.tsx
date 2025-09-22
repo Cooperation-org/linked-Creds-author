@@ -20,7 +20,7 @@ export function AppDidProvider({ children }: AppDidProviderProps) {
 
   useEffect(() => {
     // Check for stored zCap on mount
-    const storedZcap = localStorage.getItem('zcap')
+    const storedZcap = localStorage.getItem('delegatedWasZcap')
     const storedAppInstanceDid = localStorage.getItem('AppInstanceDID')
     if (storedZcap) {
       setZcapInfo(storedZcap)

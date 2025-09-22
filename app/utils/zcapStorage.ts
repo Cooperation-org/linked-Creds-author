@@ -23,7 +23,7 @@ export function storeZcap(zcap: string, appInstanceDid: string): void {
     timestamp: Date.now()
   }
   
-  localStorage.setItem('zcap', JSON.stringify(zcapStorage))
+  localStorage.setItem('delegatedWasZcap', JSON.stringify(zcapStorage))
   console.log('✅ ZCap stored in localStorage:', zcapStorage)
 }
 
@@ -34,7 +34,7 @@ export function getStoredZcap(): ZcapStorage | null {
   if (typeof window === 'undefined') return null
   
   try {
-    const stored = localStorage.getItem('zcap')
+    const stored = localStorage.getItem('delegatedWasZcap')
     if (!stored) return null
     
     const zcapStorage: ZcapStorage = JSON.parse(stored)
@@ -43,7 +43,7 @@ export function getStoredZcap(): ZcapStorage | null {
     const maxAge = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     if (Date.now() - zcapStorage.timestamp > maxAge) {
       console.warn('⚠️ Stored zCap is too old, removing from localStorage')
-      localStorage.removeItem('zcap')
+      localStorage.removeItem('delegatedWasZcap')
       return null
     }
     
@@ -59,7 +59,7 @@ export function getStoredZcap(): ZcapStorage | null {
  */
 export function clearStoredZcap(): void {
   if (typeof window === 'undefined') return
-  localStorage.removeItem('zcap')
+  localStorage.removeItem('delegatedWasZcap')
   console.log('🗑️ ZCap cleared from localStorage')
 }
 
