@@ -37,8 +37,7 @@ export function useHandleUpload({
       if (
         useWas &&
         appInstanceDid &&
-        hasZcap &&
-        (appInstanceDid.keyPair || appInstanceDid.privateKeyMultibase)
+        hasZcap
       ) {
         try {
           console.log('🚀 Uploading files to WAS')
