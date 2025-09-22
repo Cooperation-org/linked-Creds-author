@@ -23,7 +23,7 @@ export async function pollExchange({
           zcap: vp.zcap,
           timestamp: Date.now()
         };
-        localStorage.setItem('zcap', JSON.stringify(zcapStorage));
+        localStorage.setItem('delegatedWasZcap', JSON.stringify(zcapStorage));
         onFetchVP(vp)
         stopPolling()
       } catch (error) {
