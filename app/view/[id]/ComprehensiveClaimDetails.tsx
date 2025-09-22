@@ -40,8 +40,8 @@ interface Achievement {
   image?: { id: string }
 }
 interface CredentialSubject {
-  name?: string  // Made optional since external creds might not have it
-  credentialType?: string  // Added as optional for native detection
+  name?: string // Made optional since external creds might not have it
+  credentialType?: string // Added as optional for native detection
   achievement?: Achievement[]
   duration?: string
   portfolio?: Portfolio[]
@@ -236,46 +236,234 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
     ? credentialSubject.portfolio.filter(item => item && item.name && item.url)
     : []
   const hasValidEvidence = validPortfolio.length > 0
-  
+
   // Check if this is an external credential
   const isExternalCredential = () => {
     if (!claimDetail) return false
-    
+
     const subject = claimDetail.credentialSubject || {}
-    
+
     // Check if it has our native fields that our viewer expects
     // Our native schema should have:
     // - credentialSubject.name (person's name)
     // - credentialSubject.credentialType (skill/volunteer/employment/etc)
     // - credentialSubject.achievement as an array
-    
+
     const hasNativeName = typeof subject.name === 'string'
     const hasCredentialType = typeof subject.credentialType === 'string'
     const hasArrayAchievement = Array.isArray(subject.achievement)
-    
+
     // ALL THREE must be present for it to be native
     // If any are missing, it's external
     if (hasNativeName && hasCredentialType && hasArrayAchievement) {
       return false
     }
-    
+
     // Otherwise, it's external
     return true
   }
-  
+
+  const recommendations = (
+    <Box>
+      {loading ? (
+        <Box display='flex' justifyContent='center' my={2}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : comments && comments.length > 0 ? (
+        <List sx={{ p: 0, mb: 2 }}>
+          {comments.map((comment: ClaimDetail, index: number) => (
+            <React.Fragment key={index}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  pr: '30px'
+                }}
+              >
+                <LineSVG />
+              </Box>
+              <ListItem
+                sx={{ borderRadius: '10px', border: '1px solid #003FE0' }}
+                alignItems='flex-start'
+                secondaryAction={
+                  <IconButton
+                    edge='end'
+                    onClick={() => handleToggleComment(comment.id || index.toString())}
+                    aria-label='expand'
+                  >
+                    {expandedComments[comment.id || index.toString()] ? (
+                      <ExpandLess />
+                    ) : (
+                      <ExpandMore />
+                    )}
+                  </IconButton>
+                }
+              >
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <SVGBadge />
+                      <Box>
+                        <Typography variant='h6' component='div'>
+                          {comment.credentialSubject?.name}
+                        </Typography>
+                        <Typography variant='body2' color='text.secondary'>
+                          Vouched for {credentialSubject?.name}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                />
+              </ListItem>
+              <Collapse
+                in={expandedComments[comment.id || index.toString()]}
+                timeout='auto'
+                unmountOnExit
+              >
+                <Box sx={{ pl: 7, pr: 2, pb: 2 }}>
+                  {/* How They Know Each Other */}
+                  {comment.credentialSubject?.howKnow && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant='subtitle2' color='text.secondary'>
+                        How They Know Each Other:
+                      </Typography>
+                      <Typography variant='body2'>
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: cleanHTML(comment.credentialSubject.howKnow)
+                          }}
+                        />
+                      </Typography>
+                    </Box>
+                  )}
+                  {/* Recommendation Text */}
+                  {comment.credentialSubject?.recommendationText && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant='subtitle2' color='text.secondary'>
+                        Recommendation:
+                      </Typography>
+                      <Typography variant='body2'>
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: cleanHTML(
+                              comment.credentialSubject.recommendationText
+                            )
+                          }}
+                        />
+                      </Typography>
+                    </Box>
+                  )}
+                  {/* Your Qualifications */}
+                  {comment.credentialSubject?.qualifications && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant='subtitle2' color='text.secondary'>
+                        Your Qualifications:
+                      </Typography>
+                      <Typography variant='body2'>
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: cleanHTML(comment.credentialSubject.qualifications)
+                          }}
+                        />
+                      </Typography>
+                    </Box>
+                  )}
+                  {/* Explain Your Answer */}
+                  {comment.credentialSubject?.explainAnswer && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant='subtitle2' color='text.secondary'>
+                        Explain Your Answer:
+                      </Typography>
+                      <Typography variant='body2'>
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: cleanHTML(comment.credentialSubject.explainAnswer)
+                          }}
+                        />
+                      </Typography>
+                    </Box>
+                  )}
+                  {/* Supporting Evidence */}
+                  {Array.isArray(comment.credentialSubject?.portfolio) &&
+                    comment.credentialSubject.portfolio.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant='subtitle2' color='text.secondary'>
+                          Supporting Evidence:
+                        </Typography>
+                        {comment.credentialSubject.portfolio.map((item, idx) => (
+                          <Box key={`comment-portfolio-${idx}`} sx={{ mt: 1 }}>
+                            {item.name && item.url ? (
+                              <MuiLink
+                                href={item.url}
+                                underline='hover'
+                                color='primary'
+                                sx={{
+                                  fontSize: '15px',
+                                  textDecoration: 'underline',
+                                  color: '#003fe0'
+                                }}
+                                target='_blank'
+                              >
+                                {item.name}
+                              </MuiLink>
+                            ) : null}
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                </Box>
+              </Collapse>
+              {/* Add Divider between comments */}
+              {index < comments.length - 1 && <Divider component='li' />}
+            </React.Fragment>
+          ))}
+        </List>
+      ) : (
+        !isRecommendationsPage && (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+              mb: '20px'
+            }}
+          >
+            <Typography variant='body2'>No recommendations available.</Typography>
+            <Link href={`/askforrecommendation/${fileID}`}>
+              <Button
+                variant='contained'
+                sx={{
+                  backgroundColor: '#003FE0',
+                  textTransform: 'none',
+                  borderRadius: '100px',
+                  width: { xs: 'fit-content', sm: '300px', md: '300px' }
+                }}
+              >
+                Ask for Recommendation
+              </Button>
+            </Link>
+          </Box>
+        )
+      )}
+    </Box>
+  )
+
   // If it's an external credential, use the generic viewer
   if (isExternalCredential()) {
     return (
       <Container sx={{ maxWidth: '800px' }}>
-        <GenericCredentialViewer 
+        <GenericCredentialViewer
           credential={claimDetail}
           qrCodeDataUrl={qrCodeDataUrl}
           fileID={fileID}
         />
+        {recommendations}
       </Container>
     )
   }
-  
+
   return (
     <Container sx={{ maxWidth: '800px' }}>
       {claimDetail && (
@@ -639,196 +827,10 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
       )}
 
       {/* Comments Section */}
-      {(isView || !!propFileID) && claimDetail && !isRecommendationsPage && (
-        <Box>
-          {loading ? (
-            <Box display='flex' justifyContent='center' my={2}>
-              <CircularProgress size={24} />
-            </Box>
-          ) : comments && comments.length > 0 ? (
-            <List sx={{ p: 0, mb: 2 }}>
-              {comments.map((comment: ClaimDetail, index: number) => (
-                <React.Fragment key={index}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      pr: '30px'
-                    }}
-                  >
-                    <LineSVG />
-                  </Box>
-                  <ListItem
-                    sx={{ borderRadius: '10px', border: '1px solid #003FE0' }}
-                    alignItems='flex-start'
-                    secondaryAction={
-                      <IconButton
-                        edge='end'
-                        onClick={() =>
-                          handleToggleComment(comment.id || index.toString())
-                        }
-                        aria-label='expand'
-                      >
-                        {expandedComments[comment.id || index.toString()] ? (
-                          <ExpandLess />
-                        ) : (
-                          <ExpandMore />
-                        )}
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <SVGBadge />
-                          <Box>
-                            <Typography variant='h6' component='div'>
-                              {comment.credentialSubject?.name}
-                            </Typography>
-                            <Typography variant='body2' color='text.secondary'>
-                              Vouched for {credentialSubject?.name}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  <Collapse
-                    in={expandedComments[comment.id || index.toString()]}
-                    timeout='auto'
-                    unmountOnExit
-                  >
-                    <Box sx={{ pl: 7, pr: 2, pb: 2 }}>
-                      {/* How They Know Each Other */}
-                      {comment.credentialSubject?.howKnow && (
-                        <Box sx={{ mt: 1 }}>
-                          <Typography variant='subtitle2' color='text.secondary'>
-                            How They Know Each Other:
-                          </Typography>
-                          <Typography variant='body2'>
-                            <span
-                              dangerouslySetInnerHTML={{
-                                __html: cleanHTML(comment.credentialSubject.howKnow)
-                              }}
-                            />
-                          </Typography>
-                        </Box>
-                      )}
-                      {/* Recommendation Text */}
-                      {comment.credentialSubject?.recommendationText && (
-                        <Box sx={{ mt: 1 }}>
-                          <Typography variant='subtitle2' color='text.secondary'>
-                            Recommendation:
-                          </Typography>
-                          <Typography variant='body2'>
-                            <span
-                              dangerouslySetInnerHTML={{
-                                __html: cleanHTML(
-                                  comment.credentialSubject.recommendationText
-                                )
-                              }}
-                            />
-                          </Typography>
-                        </Box>
-                      )}
-                      {/* Your Qualifications */}
-                      {comment.credentialSubject?.qualifications && (
-                        <Box sx={{ mt: 1 }}>
-                          <Typography variant='subtitle2' color='text.secondary'>
-                            Your Qualifications:
-                          </Typography>
-                          <Typography variant='body2'>
-                            <span
-                              dangerouslySetInnerHTML={{
-                                __html: cleanHTML(
-                                  comment.credentialSubject.qualifications
-                                )
-                              }}
-                            />
-                          </Typography>
-                        </Box>
-                      )}
-                      {/* Explain Your Answer */}
-                      {comment.credentialSubject?.explainAnswer && (
-                        <Box sx={{ mt: 1 }}>
-                          <Typography variant='subtitle2' color='text.secondary'>
-                            Explain Your Answer:
-                          </Typography>
-                          <Typography variant='body2'>
-                            <span
-                              dangerouslySetInnerHTML={{
-                                __html: cleanHTML(comment.credentialSubject.explainAnswer)
-                              }}
-                            />
-                          </Typography>
-                        </Box>
-                      )}
-                      {/* Supporting Evidence */}
-                      {Array.isArray(comment.credentialSubject?.portfolio) &&
-                        comment.credentialSubject.portfolio.length > 0 && (
-                          <Box sx={{ mt: 1 }}>
-                            <Typography variant='subtitle2' color='text.secondary'>
-                              Supporting Evidence:
-                            </Typography>
-                            {comment.credentialSubject.portfolio.map((item, idx) => (
-                              <Box key={`comment-portfolio-${idx}`} sx={{ mt: 1 }}>
-                                {item.name && item.url ? (
-                                  <MuiLink
-                                    href={item.url}
-                                    underline='hover'
-                                    color='primary'
-                                    sx={{
-                                      fontSize: '15px',
-                                      textDecoration: 'underline',
-                                      color: '#003fe0'
-                                    }}
-                                    target='_blank'
-                                  >
-                                    {item.name}
-                                  </MuiLink>
-                                ) : null}
-                              </Box>
-                            ))}
-                          </Box>
-                        )}
-                    </Box>
-                  </Collapse>
-                  {/* Add Divider between comments */}
-                  {index < comments.length - 1 && <Divider component='li' />}
-                </React.Fragment>
-              ))}
-            </List>
-          ) : (
-            !isRecommendationsPage && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '10px',
-                  mb: '20px'
-                }}
-              >
-                <Typography variant='body2'>No recommendations available.</Typography>
-                <Link href={`/askforrecommendation/${fileID}`}>
-                  <Button
-                    variant='contained'
-                    sx={{
-                      backgroundColor: '#003FE0',
-                      textTransform: 'none',
-                      borderRadius: '100px',
-                      width: { xs: 'fit-content', sm: '300px', md: '300px' }
-                    }}
-                  >
-                    Ask for Recommendation
-                  </Button>
-                </Link>
-              </Box>
-            )
-          )}
-        </Box>
-      )}
+      {(isView || !!propFileID) &&
+        claimDetail &&
+        !isRecommendationsPage &&
+        recommendations}
     </Container>
   )
 }

@@ -339,7 +339,7 @@ const HamburgerMenu = () => {
                 }}
               >
                 <Typography sx={{ fontWeight: 400, fontSize: '16px', height: '22px' }}>
-                  About LinkedCreds
+                  Help About LinkedCreds FAQ
                 </Typography>
                 <ArrowForwardIosIcon fontSize='small' />
               </Box>

@@ -17,13 +17,18 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { GoogleDriveStorage, saveToGoogleDrive } from '@cooperation/vc-storage'
 import { storeFileTokens } from '../firebase/storage'
 import { saveRaw } from '../utils/googleDrive'
-import { 
-  analyzeCredential, 
-  convertToNativeFormat, 
+import {
+  analyzeCredential,
+  convertToNativeFormat,
   getFetchStrategy,
-  mightHaveCORSIssues 
+  mightHaveCORSIssues
 } from '../utils/externalCredentials'
-
+import { normalizeCredential, validateNormalizedCredential } from '../utils/normalize'
+import { verifyCredentialWithEngine } from '../utils/verification'
+import {
+  storeCredentialMetadata,
+  updateCredentialVerification
+} from '../utils/credentialMetadata'
 
 const formLabelStyles = {
   fontFamily: 'Lato',
@@ -52,8 +57,6 @@ interface FetchResult {
   error?: string
   data?: any
 }
-
-
 
 // Function to extract form data from credential JSON
 const extractFormDataFromCredential = (credentialData: any) => {
@@ -118,14 +121,15 @@ function StatusMessage({ fetchResult }: { fetchResult: FetchResult | null }) {
         </Typography>
         {fetchResult.error?.includes('CORS') && (
           <Typography
-            variant="body2"
+            variant='body2'
             sx={{
               color: 'text.secondary',
               textAlign: 'center',
               fontSize: '0.875rem'
             }}
           >
-            Tip: If the credential provider supports it, try using a direct download link or contact them for CORS-enabled access.
+            Tip: If the credential provider supports it, try using a direct download link
+            or contact them for CORS-enabled access.
           </Typography>
         )}
       </Box>
@@ -134,7 +138,7 @@ function StatusMessage({ fetchResult }: { fetchResult: FetchResult | null }) {
 
   // Success message - check if it's in the error field (for provider info)
   const message = fetchResult.error || 'Success! Redirecting...'
-  
+
   return (
     <Typography
       sx={{
@@ -179,6 +183,73 @@ function SimpleCredentialForm() {
     setPopupOpen(true)
   }
 
+  const handleEnhancedImport = async (vcData: any) => {
+    try {
+      // Normalize the credential
+      const normalized = normalizeCredential(vcData)
+      validateNormalizedCredential(normalized)
+
+      // Verify the credential
+      const verificationResult = await verifyCredentialWithEngine(normalized)
+
+      // Save normalized credential to Google Drive
+      const storage = new GoogleDriveStorage(accessToken!)
+      const savedFile = await saveToGoogleDrive({
+        storage,
+        data: normalized,
+        type: 'VC'
+      })
+
+      // Store file tokens
+      await storeFileTokens({
+        googleFileId: savedFile.id,
+        tokens: {
+          accessToken: accessToken!,
+          refreshToken: refreshToken as string
+        }
+      })
+
+      const folderIds = await storage?.getFileParents(savedFile.id)
+      const relationFile = await storage?.createRelationsFile({
+        vcFolderId: folderIds[0]
+      })
+
+      // Store credential metadata
+      const credentialInfo = analyzeCredential(vcData)
+      await storeCredentialMetadata(savedFile.id, {
+        owner: session?.user?.email || '',
+        normalized: true,
+        verification: {
+          status: verificationResult.ok ? 'verified' : 'unverified',
+          ok: verificationResult.ok,
+          details: verificationResult.details
+        },
+        source: credentialInfo.format || 'unknown',
+        originalType: credentialInfo.provider || 'unknown'
+      })
+
+      // Update verification status
+      await updateCredentialVerification(savedFile.id, verificationResult)
+
+      setFetchResult({
+        success: true,
+        data: normalized,
+        error: `Enhanced import successful! Redirecting to recommendation workflow...`
+      })
+
+      // Auto-navigate to recommender workflow
+      setTimeout(() => {
+        router.push(`/recommendations/${savedFile.id}`)
+      }, 2000)
+    } catch (error) {
+      console.error('Enhanced import error:', error)
+      setFetchResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'Enhanced import failed'
+      })
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -196,7 +267,7 @@ function SimpleCredentialForm() {
     try {
       let vcData
       const strategy = getFetchStrategy(url)
-      
+
       console.log(`Fetch strategy for ${url}: ${strategy}`)
 
       // Try fetching based on the determined strategy
@@ -232,25 +303,27 @@ function SimpleCredentialForm() {
 
             if (!proxyResponse.ok) {
               const errorData = await proxyResponse.json()
-              throw new Error(errorData.error || `Proxy error! status: ${proxyResponse.status}`)
+              throw new Error(
+                errorData.error || `Proxy error! status: ${proxyResponse.status}`
+              )
             }
 
             vcData = await proxyResponse.json()
           }
         } catch (error) {
           console.log(`${strategy} fetch failed:`, error)
-          
+
           // If direct failed, try proxy; if proxy failed, try public CORS proxy
           if (strategy === 'direct') {
             // Retry with proxy
             try {
               const proxyUrl = `/api/proxy-credential?url=${encodeURIComponent(url)}`
               const proxyResponse = await fetch(proxyUrl)
-              
+
               if (!proxyResponse.ok) {
                 throw new Error(`Proxy failed: ${proxyResponse.status}`)
               }
-              
+
               vcData = await proxyResponse.json()
             } catch (proxyError) {
               // Last resort: public CORS proxy
@@ -289,11 +362,13 @@ function SimpleCredentialForm() {
       const credentialInfo = analyzeCredential(vcData)
       console.log('Credential analysis:', credentialInfo)
       console.log('Can display natively:', !credentialInfo.isExternal)
-      
+
       if (credentialInfo.isExternal) {
-        console.log(`Detected external credential from ${credentialInfo.provider} (${credentialInfo.format})`)
+        console.log(
+          `Detected external credential from ${credentialInfo.provider} (${credentialInfo.format})`
+        )
         console.log('This credential format cannot be displayed in our native viewer')
-        
+
         // Check if we can convert it to native format
         if (credentialInfo.canConvert) {
           const converted = convertToNativeFormat(vcData)
@@ -306,47 +381,54 @@ function SimpleCredentialForm() {
           }
         }
       }
-      
+
       if (credentialInfo.isExternal) {
         // For credentials that can't be displayed natively, save and use generic viewer
         if (accessToken) {
           try {
             // If it's a VerifiablePresentation, extract the credential
             let credentialToSave = vcData
-            if (vcData.type?.includes('VerifiablePresentation') && vcData.verifiableCredential?.[0]) {
+            if (
+              vcData.type?.includes('VerifiablePresentation') &&
+              vcData.verifiableCredential?.[0]
+            ) {
               credentialToSave = vcData.verifiableCredential[0]
             }
 
             console.log('trying to save ext credential: ', credentialToSave)
             const storage = new GoogleDriveStorage(accessToken)
-            const savedFile = await saveToGoogleDrive({storage, data:credentialToSave, type:'VC'})
-            try{
-                await storeFileTokens({
-                    googleFileId: savedFile.id,
-                    tokens: {
-                       accessToken: accessToken,
-                       refreshToken: refreshToken as string
-                    }
-                })
-                console.log('External credential saved to Google Drive:', savedFile)
+            const savedFile = await saveToGoogleDrive({
+              storage,
+              data: credentialToSave,
+              type: 'VC'
+            })
+            try {
+              await storeFileTokens({
+                googleFileId: savedFile.id,
+                tokens: {
+                  accessToken: accessToken,
+                  refreshToken: refreshToken as string
+                }
+              })
+              console.log('External credential saved to Google Drive:', savedFile)
             } catch {
-              console.log("Cannot seem to save the file or the tokens")
+              console.log('Cannot seem to save the file or the tokens')
             }
- 
+
             //const savedFile = await saveRaw(accessToken, credentialToSave)
-            
+
             setFetchResult({
               success: true,
               data: credentialToSave
             })
-            
-            // Show success message with provider info
+
+            // Show success message with provider info and enhanced import option
             setFetchResult({
               success: true,
               data: credentialToSave,
-              error: `Successfully imported ${credentialInfo.provider} credential`
+              error: `Successfully imported ${credentialInfo.provider} credential. Use Enhanced Import for recommendation workflow.`
             })
-            
+
             // Navigate to view page after save
             setTimeout(() => {
               router.push(`/view/${savedFile.id}`)
@@ -379,20 +461,23 @@ function SimpleCredentialForm() {
         // Save the credential directly to Google Drive
         if (accessToken) {
           try {
-
             const storage = new GoogleDriveStorage(accessToken)
-            const savedFile = await saveToGoogleDrive({storage, data:vcData, type:'VC'})
-            try{
-                await storeFileTokens({
-                    googleFileId: savedFile.id,
-                    tokens: {
-                       accessToken: accessToken,
-                       refreshToken: refreshToken as string
-                    }
-                })
-                console.log('External credential saved to Google Drive:', savedFile)
+            const savedFile = await saveToGoogleDrive({
+              storage,
+              data: vcData,
+              type: 'VC'
+            })
+            try {
+              await storeFileTokens({
+                googleFileId: savedFile.id,
+                tokens: {
+                  accessToken: accessToken,
+                  refreshToken: refreshToken as string
+                }
+              })
+              console.log('External credential saved to Google Drive:', savedFile)
             } catch {
-              console.log("Cannot seem to save the file or the tokens")
+              console.log('Cannot seem to save the file or the tokens')
             }
 
             //const savedFile = await saveRaw(accessToken, vcData)
@@ -442,13 +527,13 @@ function SimpleCredentialForm() {
       <form onSubmit={handleSubmit}>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
           <FormLabel sx={{ ...formLabelStyles, mb: 2 }} id='credential-url-label'>
-            Enter your credential URL:
+            Enter credential URL or paste JSON directly:
           </FormLabel>
           <TextField
             name='credentialUrl'
             value={url}
             onChange={handleUrlChange}
-            placeholder='https://example.com/credential.json'
+            placeholder='https://example.com/credential.json or paste JSON directly'
             variant='outlined'
             sx={TextFieldStyles}
             aria-labelledby='credential-url-label'
@@ -458,7 +543,7 @@ function SimpleCredentialForm() {
           {url && mightHaveCORSIssues(url) && (
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 0.5 }}>
               <InfoOutlinedIcon sx={{ fontSize: 16, color: 'warning.main' }} />
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant='caption' color='text.secondary'>
                 This URL might require proxy access due to CORS restrictions
               </Typography>
             </Box>
@@ -478,6 +563,79 @@ function SimpleCredentialForm() {
           >
             {isLoading ? 'Fetching...' : 'Import Credential Data'}
           </Button>
+
+          {/* Enhanced Import Button */}
+          <Button
+            variant='outlined'
+            disabled={isLoading || !url.trim()}
+            onClick={async () => {
+              if (!url.trim()) return
+              setIsLoading(true)
+              setFetchResult(null)
+
+              try {
+                let vcData
+
+                // Check if the input looks like JSON (starts with { or [)
+                if (url.trim().startsWith('{') || url.trim().startsWith('[')) {
+                  // Direct JSON input - parse it
+                  try {
+                    vcData = JSON.parse(url.trim())
+                    console.log('Parsed JSON input directly:', vcData)
+                  } catch (parseError) {
+                    throw new Error('Invalid JSON format. Please check your input.')
+                  }
+                } else {
+                  // URL input - fetch the credential
+                  const strategy = getFetchStrategy(url)
+
+                  if (strategy === 'direct') {
+                    const response = await fetch(url, {
+                      method: 'GET',
+                      headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json'
+                      },
+                      mode: 'cors'
+                    })
+                    if (!response.ok)
+                      throw new Error(`HTTP error! status: ${response.status}`)
+                    vcData = await response.json()
+                  } else {
+                    const proxyUrl = `/api/proxy-credential?url=${encodeURIComponent(url)}`
+                    const proxyResponse = await fetch(proxyUrl)
+                    if (!proxyResponse.ok)
+                      throw new Error(`Proxy error! status: ${proxyResponse.status}`)
+                    vcData = await proxyResponse.json()
+                  }
+                }
+
+                // Use enhanced import workflow
+                await handleEnhancedImport(vcData)
+              } catch (error) {
+                setFetchResult({
+                  success: false,
+                  error: error instanceof Error ? error.message : 'Enhanced import failed'
+                })
+              } finally {
+                setIsLoading(false)
+              }
+            }}
+            sx={{
+              mt: 1,
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontFamily: 'Lato',
+              borderColor: '#22c55e',
+              color: '#22c55e',
+              '&:hover': {
+                borderColor: '#16a34a',
+                backgroundColor: '#f0fdf4'
+              }
+            }}
+          >
+            {isLoading ? 'Processing...' : 'Enhanced Import → Recommend'}
+          </Button>
           {isLoading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
               <CircularProgress size={24} />
@@ -489,14 +647,16 @@ function SimpleCredentialForm() {
 
       {/* Helpful examples */}
       <Box sx={{ mt: 3, maxWidth: 400, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
+        <Typography variant='body2' color='text.secondary' gutterBottom>
           Examples of supported URLs:
         </Typography>
-        <Typography variant="caption" color="text.secondary" component="div">
-          • GitHub raw files (raw.githubusercontent.com)<br/>
-          • Direct JSON endpoints with CORS headers<br/>
-          • Google Drive direct download links<br/>
-          • Most credential issuers&apos; public endpoints
+        <Typography variant='caption' color='text.secondary' component='div'>
+          • GitHub raw files (raw.githubusercontent.com)
+          <br />
+          • Direct JSON endpoints with CORS headers
+          <br />
+          • Google Drive direct download links
+          <br />• Most credential issuers&apos; public endpoints
         </Typography>
       </Box>
 
