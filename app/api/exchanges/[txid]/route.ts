@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { exchanges } from '../../../lib/exchanges' // Adjust path if needed
+import { exchanges } from '../../../lib/exchanges'
+import { APP_BASE_URL } from '../../../../app.config'
 
 // Set CORS headers
 const corsHeaders = {
@@ -22,32 +23,32 @@ export function OPTIONS() {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { txId: string } }
+  context: { params: { txId: string } }
 ) {
-  const { txId } = params
-  console.log('🚀 ~ handler ~ txId:', txId)
+  const url = new URL(request.url);
+  console.log('🚀 ~ GET ~ url:', url)
+  const txId = context.params?.txId || url.pathname.split("/").pop();
+
+  console.log("🚀 ~ GET ~ txId:", txId);
 
   if (!txId) {
     return NextResponse.json(
-      { error: 'Transaction id is required.' },
+      { error: "Transaction id is required." },
       { status: 400, headers: corsHeaders }
-    )
+    );
   }
-
-  console.log('Looking for tx', txId, exchanges.get(txId))
 
   if (exchanges.has(txId)) {
     return new NextResponse(exchanges.get(txId), {
       status: 200,
       headers: corsHeaders
-    })
-  } else {
-    console.log('Incoming GET: tx not found.')
-    return new NextResponse('Not found', {
-      status: 404,
-      headers: corsHeaders
-    })
+    });
   }
+
+  return new NextResponse("Not found", {
+    status: 404,
+    headers: corsHeaders
+  });
 }
 
 /**
@@ -58,57 +59,91 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { txId: string } }
 ) {
-  const { txId } = params
-  console.log('🚀 ~ txId:', txId)
+  const { txId } = params;
+  console.log('[POST] Incoming txId:', txId);
 
   try {
-    const body = await request.json()
-    const payload = JSON.stringify(body)
+    // Try to parse body — gracefully handle empty body
+    const body = await request.json().catch(() => ({}));
+    console.log('[POST] Parsed body:', body);
 
-    console.log('Incoming POST:', body)
+    const appInstanceDid = body.appInstanceDid;
+    const existing = exchanges.get(txId);
+    console.log('🚀 ~ POST ~ existing:', existing)
 
-    if (payload === '{}') {
-      // Initial POST by the wallet, send the VP Request query
-      const query = vprQuery()
-      return NextResponse.json(query, { headers: corsHeaders })
-    } else {
-      // Requested credentials sent by the wallet
-      // Store in the exchanges cache
-      console.log('Storing txId', txId, payload)
-      exchanges.set(txId, payload)
-      return NextResponse.json({ status: 'received' }, { headers: corsHeaders })
+    if (appInstanceDid) {
+      // Initial POST from the web app
+      console.log('[POST] Received appInstanceDid from resume-author:', appInstanceDid);
+      exchanges.set(txId, JSON.stringify({ appInstanceDid }));
+      return NextResponse.json(
+        { status: '✅ App DID received, waiting for wallet to connect' },
+        { headers: corsHeaders }
+      );
     }
-  } catch (error: any) {
-    console.error(error)
 
-    return NextResponse.json(
-      {
-        status: error.statusText || 'Invalid request',
-        error: error.message
-      },
-      {
-        status: error.statusCode || 400,
-        headers: corsHeaders
+    if (existing) {
+      // LCW POSTed after resume-author initialized session
+      const parsed = JSON.parse(existing);
+    
+      if (body.zcap) {
+        // Final step: LCW is responding with the ZCAP
+        console.log('[POST] ✅ Received zcap from LCW:', body.zcap);
+    
+        exchanges.set(txId, JSON.stringify({
+          ...parsed,
+          zcap: body.zcap
+        }));
+    
+        return NextResponse.json(
+          { status: '✅ ZCAP received' },
+          { headers: corsHeaders }
+        );
       }
-    )
+    
+      // Otherwise, return VPR to LCW
+      const query = vprQuery({ txId, appInstanceDid: parsed.appInstanceDid });
+      return NextResponse.json(query, { headers: corsHeaders });
+    }
+    
+
+    // Neither new DID nor existing session
+    console.warn('[POST] ❌ Missing appInstanceDid and no cached session found for txId.');
+    return NextResponse.json(
+      { error: 'Missing appInstanceDid and no session initialized' },
+      { status: 400, headers: corsHeaders }
+    );
+
+  } catch (error: any) {
+    console.error('[POST] ❌ Error handling request:', error);
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400, headers: corsHeaders });
   }
 }
+
 
 /**
  * Returns the Verifiable Presentation Request Query
  */
-function vprQuery() {
+function vprQuery({ txId, appInstanceDid }: { txId: string; appInstanceDid: string }) {
+  const pollingExchangeEndpoint = `${APP_BASE_URL}/api/exchanges/${txId}`
+
   return {
     verifiablePresentationRequest: {
+      interact: {
+        type: 'UnmediatedHttpPresentationService2021',
+        serviceEndpoint: pollingExchangeEndpoint
+      },
       query: [
         {
-          type: 'QueryByExample',
-          credentialQuery: {
+          type: 'ZcapQuery',
+          capabilityQuery: {
             reason:
-              'Please present your Verifiable Credential to complete the verification process.',
-            example: {
-              '@context': ['https://www.w3.org/2018/credentials/v1'],
-              type: ['VerifiableCredential']
+              'Linked Creds Author is requesting the permission to read and write to the Verifiable Credentials and VC Evidence collections.',
+            allowedAction: ['GET', 'PUT', 'POST'],
+            controller: appInstanceDid,
+            invocationTarget: {
+              type: 'urn:was:collection',
+              contentType: 'application/vc',
+              name: 'VerifiableCredential collection'
             }
           }
         }
