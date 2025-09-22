@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write 'app/**/*.{js,ts,tsx,jsx,json}'"
+    "format": "prettier --write 'app/**/*.{js,ts,tsx,jsx,json}'",
+    "test:normalize": "node scripts/test-runner.js",
+    "test:workflow": "node app/utils/__tests__/e2e-workflow.test.ts"
   },
   "dependencies": {
     "@cooperation/vc-storage": "^1.0.34",
