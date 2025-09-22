@@ -62,8 +62,8 @@ export function verifyCredential(credential: any): VerificationResult {
     // Determine overall verification status
     result.ok =
       result.details.hasProof &&
-      result.details.signatureValid &&
-      result.details.issuerVerified
+      (result.details.signatureValid ?? false) &&
+      (result.details.issuerVerified ?? false)
 
     return result
   } catch (error) {
