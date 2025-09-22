@@ -22,8 +22,12 @@ export default function WasLoginPage() {
     ;(async () => {
       try {
         // Create / load appInstanceDid for this client
-        const { did: appInstanceDid } = await getOrCreateAppInstanceDid()
-
+        const appInstanceDid = localStorage.getItem('AppInstanceDID')
+        if (!appInstanceDid) {
+          setError('Failed to connect to the wallet: missing AppInstanceDID')
+          setIsLoading(false)
+          return
+        }
         // Initialize exchange session with appInstanceDid
         const res = await fetch(exchangeUrl, {
           method: 'POST',

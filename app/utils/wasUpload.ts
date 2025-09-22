@@ -12,12 +12,7 @@ interface PortfolioItem {
 }
 
 async function makeInvocationSigner(appInstance: any) {
-  const key = await Ed25519VerificationKey2020.from({
-    id: appInstance.id,
-    controller: appInstance.controller,
-    publicKeyMultibase: appInstance.publicKeyMultibase,
-    privateKeyMultibase: appInstance.privateKeyMultibase,
-  })
+  const key = await Ed25519VerificationKey2020.from(appInstance)
   return key.signer()
 }
 

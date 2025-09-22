@@ -21,7 +21,6 @@ export async function pollExchange({
       try {
         const zcapStorage = {
           zcap: vp.zcap,
-          appInstanceDid: vp.appInstanceDid,
           timestamp: Date.now()
         };
         localStorage.setItem('zcap', JSON.stringify(zcapStorage));
