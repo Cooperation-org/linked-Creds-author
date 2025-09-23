@@ -435,3 +435,55 @@ export const updateEvidenceAttachmentRates = async (
 }
 
 export { db, auth } // Still export db and auth for other potential consumers, but they are now imported
+
+// Increment external credential imports counter (credentialsIssued.external)
+// Kept separate to avoid widening the CredentialsIssued TypeScript type.
+export const incrementExternalImports = async (userEmail: string): Promise<void> => {
+  const emailPrefix = getUserEmailPrefix(userEmail)
+  if (!emailPrefix) {
+    console.error('User email is invalid for incrementing external imports.')
+    return
+  }
+  const userDocRef = doc(db, 'users', emailPrefix)
+  try {
+    await updateDoc(userDocRef, {
+      email: userEmail,
+      ['credentialsIssued.external']: increment(1),
+      lastActivity: serverTimestamp()
+    })
+    console.log(`Successfully incremented credentialsIssued.external for ${emailPrefix}`)
+  } catch (error: any) {
+    console.warn(
+      `Failed to increment external imports for ${emailPrefix}. Attempting to create. Error:`,
+      error.message || error
+    )
+    const dataToSet: any = {
+      email: userEmail,
+      credentialsIssued: {
+        skill: 0,
+        employment: 0,
+        performanceReview: 0,
+        volunteer: 0,
+        idVerification: 0,
+        external: 1
+      },
+      clickRates: { requestRecommendation: 0, shareCredential: 0 },
+      evidenceAttachmentRates: {
+        skillVCs: 0,
+        employmentVCs: 0,
+        volunteerVCs: 0,
+        performanceReviews: 0
+      },
+      lastActivity: serverTimestamp()
+    }
+    try {
+      await setDoc(userDocRef, dataToSet)
+      console.log(`Created user doc for ${emailPrefix} with external imports = 1`)
+    } catch (setDocError: any) {
+      console.error(
+        `Error creating document for ${emailPrefix} after external import increment failed:`,
+        setDocError.message || setDocError
+      )
+    }
+  }
+}

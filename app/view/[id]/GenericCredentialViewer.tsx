@@ -1,17 +1,10 @@
 'use client'
 import React from 'react'
-import {
-  Box,
-  Typography,
-  Paper,
-  Divider,
-  Link,
-  Chip,
-  List,
-  ListItem,
-  ListItemText
-} from '@mui/material'
+import { Box, Typography, Paper, Divider, Link, Chip, Button } from '@mui/material'
 import { SVGBadge, CheckMarkSVG } from '../../Assets/SVGs'
+import { GoogleDriveStorage } from '@cooperation/vc-storage'
+import { getAccessToken, getFileViaFirebase } from '../../firebase/storage'
+import { verifyCredentialWithEngine } from '../../utils/verification'
 
 interface GenericCredentialViewerProps {
   credential: any
@@ -24,11 +17,6 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
   qrCodeDataUrl,
   fileID
 }) => {
-  // Helper to safely get nested values
-  const getNestedValue = (obj: any, path: string) => {
-    return path.split('.').reduce((acc, part) => acc?.[part], obj)
-  }
-
   // Extract issuer information
   const getIssuerInfo = () => {
     if (typeof credential.issuer === 'string') {
@@ -40,7 +28,7 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
   // Extract subject information for OpenBadge credentials
   const getSubjectInfo = () => {
     const subject = credential.credentialSubject || {}
-    
+
     // For OpenBadge credentials
     if (subject.achievement && !Array.isArray(subject.achievement)) {
       return {
@@ -49,7 +37,7 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
         type: subject.type
       }
     }
-    
+
     // For our native format
     if (subject.achievement && Array.isArray(subject.achievement)) {
       return {
@@ -58,13 +46,95 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
         type: subject.type
       }
     }
-    
+
     return subject
   }
 
   const issuer = getIssuerInfo()
   const subject = getSubjectInfo()
-  const credentialTypes = Array.isArray(credential.type) ? credential.type : [credential.type]
+  const credentialTypes = Array.isArray(credential.type)
+    ? credential.type
+    : [credential.type]
+
+  // Resolve original via RELATIONS in the same folder
+  const findOriginalForNormalized = async (
+    normalizedId: string
+  ): Promise<string | null> => {
+    try {
+      const accessToken1 = await getAccessToken(normalizedId)
+      const storage = new GoogleDriveStorage(accessToken1)
+      const parents = await storage.getFileParents(normalizedId)
+      const folderId = Array.isArray(parents) ? parents[0] : parents
+      if (!folderId) return null
+      const files = await storage.findFolderFiles(folderId)
+      const relationsFile = files.find((f: any) => f.name === 'RELATIONS')
+      if (!relationsFile) return null
+      let relationsData: any = relationsFile?.content
+        ? relationsFile.content?.body
+          ? JSON.parse(relationsFile.content.body)
+          : relationsFile.content
+        : null
+      if (!relationsData) {
+        const relationsContent = await storage.retrieve(relationsFile.id)
+        relationsData = relationsContent?.data?.body
+          ? JSON.parse(relationsContent.data.body)
+          : relationsContent?.data
+      }
+      const originals = relationsData?.originals
+      if (Array.isArray(originals) && originals.length > 0) return originals[0]
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  const handleViewOriginal = async () => {
+    try {
+      if (!fileID) return
+      const originalId = await findOriginalForNormalized(fileID)
+      if (!originalId) {
+        window.alert('Original credential not linked.')
+        return
+      }
+      const file = await getFileViaFirebase(originalId)
+      const body = file?.body ? file.body : null
+      if (!body) {
+        window.open(`/api/credential-raw/${originalId}`, '_blank')
+        return
+      }
+      const pretty = JSON.stringify(JSON.parse(body), null, 2)
+      const blob = new Blob([pretty], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch (err) {
+      console.error('View Original failed:', err)
+      window.alert('Failed to open original credential.')
+    }
+  }
+
+  const handleVerifyOriginal = async () => {
+    try {
+      if (!fileID) return
+      const originalId = await findOriginalForNormalized(fileID)
+      if (!originalId) {
+        window.alert('Original credential not linked.')
+        return
+      }
+      const file = await getFileViaFirebase(originalId)
+      const original = file?.body ? JSON.parse(file.body) : null
+      if (!original) {
+        window.alert('Original credential not found.')
+        return
+      }
+      const result = await verifyCredentialWithEngine(original)
+      window.alert(
+        result.ok ? 'Original verified successfully.' : 'Original verification failed.'
+      )
+    } catch (err) {
+      console.error('Verify Original failed:', err)
+      window.alert('Verification error.')
+    }
+  }
 
   return (
     <Paper
@@ -115,7 +185,7 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
           <Chip
             key={index}
             label={type}
-            size="small"
+            size='small'
             sx={{ mr: 1, mb: 1 }}
             color={type === 'VerifiableCredential' ? 'primary' : 'default'}
           />
@@ -126,29 +196,46 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center', mb: 2 }}>
           <SVGBadge />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          <Typography variant='h5' sx={{ fontWeight: 700 }}>
             {credential.name || subject.achievement?.name || 'Unnamed Credential'}
           </Typography>
         </Box>
 
         {credential.description && (
-          <Typography sx={{ mb: 2 }}>
-            {credential.description}
-          </Typography>
+          <Typography sx={{ mb: 2 }}>{credential.description}</Typography>
         )}
       </Box>
+
+      {fileID && (
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+          <Button
+            variant='outlined'
+            onClick={handleViewOriginal}
+            sx={{ textTransform: 'none', borderRadius: '100px' }}
+          >
+            View Original
+          </Button>
+          <Button
+            variant='outlined'
+            onClick={handleVerifyOriginal}
+            sx={{ textTransform: 'none', borderRadius: '100px' }}
+          >
+            Verify Original
+          </Button>
+        </Box>
+      )}
 
       <Divider sx={{ my: 2 }} />
 
       {/* Issuer Information */}
       {issuer.name && (
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+          <Typography variant='h6' sx={{ mb: 1, fontWeight: 600 }}>
             Issued By
           </Typography>
           <Typography>{issuer.name}</Typography>
           {issuer.url && (
-            <Link href={issuer.url} target="_blank" sx={{ fontSize: '14px' }}>
+            <Link href={issuer.url} target='_blank' sx={{ fontSize: '14px' }}>
               {issuer.url}
             </Link>
           )}
@@ -163,22 +250,20 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
       {/* Subject/Achievement Information */}
       {subject.achievement && (
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+          <Typography variant='h6' sx={{ mb: 1, fontWeight: 600 }}>
             Achievement Details
           </Typography>
-          
+
           {subject.achievement.name && (
             <Typography sx={{ fontWeight: 500, mb: 1 }}>
               {subject.achievement.name}
             </Typography>
           )}
-          
+
           {subject.achievement.description && (
-            <Typography sx={{ mb: 1 }}>
-              {subject.achievement.description}
-            </Typography>
+            <Typography sx={{ mb: 1 }}>{subject.achievement.description}</Typography>
           )}
-          
+
           {subject.achievement.criteria && (
             <Box sx={{ mt: 2 }}>
               <Typography sx={{ fontWeight: 500 }}>Criteria:</Typography>
@@ -213,14 +298,14 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#000E40' }}>
           Credential Status
         </Typography>
-        
+
         <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
           <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
             <CheckMarkSVG />
           </Box>
           <Typography>Has a valid digital signature</Typography>
         </Box>
-        
+
         {credential.credentialStatus && (
           <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
             <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
@@ -233,9 +318,7 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
 
       {/* Raw JSON Preview (collapsed by default) */}
       <details style={{ marginTop: '20px' }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-          View Raw JSON
-        </summary>
+        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>View Raw JSON</summary>
         <Box
           sx={{
             mt: 2,

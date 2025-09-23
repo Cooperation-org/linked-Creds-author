@@ -29,6 +29,7 @@ import {
   storeCredentialMetadata,
   updateCredentialVerification
 } from '../utils/credentialMetadata'
+import { incrementExternalImports } from '../firebase/firestore'
 
 const formLabelStyles = {
   fontFamily: 'Lato',
@@ -194,29 +195,82 @@ function SimpleCredentialForm() {
 
       // Save normalized credential to Google Drive
       const storage = new GoogleDriveStorage(accessToken!)
-      const savedFile = await saveToGoogleDrive({
+
+      // 1) Save original external credential (as-is)
+      const originalFile = await saveToGoogleDrive({
+        storage,
+        data: vcData,
+        type: 'VC'
+      })
+
+      // 2) Save normalized credential
+      const normalizedFile = await saveToGoogleDrive({
         storage,
         data: normalized,
         type: 'VC'
       })
 
       // Store file tokens
-      await storeFileTokens({
-        googleFileId: savedFile.id,
-        tokens: {
-          accessToken: accessToken!,
-          refreshToken: refreshToken as string
-        }
-      })
+      await Promise.all([
+        storeFileTokens({
+          googleFileId: originalFile.id,
+          tokens: {
+            accessToken: accessToken!,
+            refreshToken: refreshToken as string
+          }
+        }),
+        storeFileTokens({
+          googleFileId: normalizedFile.id,
+          tokens: {
+            accessToken: accessToken!,
+            refreshToken: refreshToken as string
+          }
+        })
+      ])
 
-      const folderIds = await storage?.getFileParents(savedFile.id)
-      const relationFile = await storage?.createRelationsFile({
-        vcFolderId: folderIds[0]
+      const folderIds = await storage?.getFileParents(normalizedFile.id)
+      const vcFolderId = folderIds[0]
+      // Ensure RELATIONS exists
+      const folderFiles = await storage.findFolderFiles(vcFolderId)
+      let relationsFile = folderFiles.find((f: any) => f.name === 'RELATIONS')
+      if (!relationsFile) {
+        relationsFile = await storage.createRelationsFile({ vcFolderId })
+      }
+      // Read existing RELATIONS content
+      let relationsData: any = null
+      if (relationsFile?.content) {
+        relationsData = relationsFile.content?.body
+          ? JSON.parse(relationsFile.content.body)
+          : relationsFile.content
+      }
+      if (!relationsData) {
+        const rel = await storage.retrieve(relationsFile.id)
+        relationsData = rel?.data?.body ? JSON.parse(rel.data.body) : rel?.data || {}
+      }
+      const nextRelations = {
+        vc: relationsData?.vc,
+        recommendations: Array.isArray(relationsData?.recommendations)
+          ? relationsData.recommendations
+          : [],
+        originals: Array.isArray(relationsData?.originals) ? relationsData.originals : [],
+        normalized: Array.isArray(relationsData?.normalized)
+          ? relationsData.normalized
+          : []
+      }
+      if (!nextRelations.originals.includes(originalFile.id))
+        nextRelations.originals.push(originalFile.id)
+      if (!nextRelations.normalized.includes(normalizedFile.id))
+        nextRelations.normalized.push(normalizedFile.id)
+      // Persist using updateFileContent (supported by library)
+      await (storage as any).updateFileContent({
+        fileId: relationsFile.id,
+        data: nextRelations
       })
 
       // Store credential metadata
       const credentialInfo = analyzeCredential(vcData)
-      await storeCredentialMetadata(savedFile.id, {
+      // For normalized
+      await storeCredentialMetadata(normalizedFile.id, {
         owner: session?.user?.email || '',
         normalized: true,
         verification: {
@@ -228,8 +282,26 @@ function SimpleCredentialForm() {
         originalType: credentialInfo.provider || 'unknown'
       })
 
-      // Update verification status
-      await updateCredentialVerification(savedFile.id, verificationResult)
+      // For original (minimal metadata)
+      await storeCredentialMetadata(originalFile.id, {
+        owner: session?.user?.email || '',
+        normalized: false,
+        verification: { status: 'pending' },
+        source: credentialInfo.format || 'unknown',
+        originalType: credentialInfo.provider || 'unknown'
+      })
+
+      // Update verification status for normalized copy (post-import verify normalized)
+      await updateCredentialVerification(normalizedFile.id, verificationResult)
+
+      // 4) Increment analytics for external imports
+      if (session?.user?.email) {
+        try {
+          await incrementExternalImports(session.user.email)
+        } catch (err) {
+          console.warn('Failed to increment external imports analytics:', err)
+        }
+      }
 
       setFetchResult({
         success: true,
@@ -239,7 +311,7 @@ function SimpleCredentialForm() {
 
       // Auto-navigate to recommender workflow
       setTimeout(() => {
-        router.push(`/recommendations/${savedFile.id}`)
+        router.push(`/recommendations/${normalizedFile.id}`)
       }, 2000)
     } catch (error) {
       console.error('Enhanced import error:', error)
