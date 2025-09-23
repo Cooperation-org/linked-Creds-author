@@ -114,9 +114,7 @@ const ViewClaimDialogContent: React.FC<ViewClaimDialogContentProps> = ({ fileID 
 }
 const ClaimsPageClient: React.FC = () => {
   const [claims, setClaims] = useState<any[]>([])
-  console.log(': claims', claims)
   const [recommendations, setRecommendations] = useState<any[]>([])
-  console.log(': recommendations', recommendations)
   const [loading, setLoading] = useState(true)
   const [recommendationsLoading, setRecommendationsLoading] = useState(true)
   const [initialFetchCompleted, setInitialFetchCompleted] = useState(false)

@@ -89,7 +89,6 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
   const [qrCodeDataUrlMobile, setQrCodeDataUrlMobile] = useState<string>('')
   const theme = useTheme()
-  const isLargeScreen = useMediaQuery(theme.breakpoints.up('sm'))
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const pathname = usePathname()
   const { data: session, status } = useSession()
@@ -171,19 +170,32 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
 
           if (relationsFile) {
             const relationsContent = await uncachedStorage.retrieve(relationsFile.id)
-            const relationsData = relationsContent?.data.body
-              ? JSON.parse(relationsContent?.data.body)
+            const relationsData = relationsContent?.data?.body
+              ? JSON.parse(relationsContent.data.body)
               : relationsContent?.data
 
-            const recommendationIds = relationsData.recommendations || []
+            const rawIds = Array.isArray(relationsData?.recommendations)
+              ? relationsData.recommendations
+              : []
+            const recommendationIds = rawIds.filter(
+              (id: any): id is string => typeof id === 'string' && id.trim().length > 0
+            )
+
             const recommendations = await Promise.all(
-              recommendationIds.map(async (rec: string) => {
-                const recFile = await getFileViaFirebase(rec)
-                return JSON.parse(recFile.body)
+              recommendationIds.map(async (recId: string) => {
+                try {
+                  const recFile = await getFileViaFirebase(recId)
+                  const body = recFile?.body ?? null
+                  return body ? JSON.parse(body) : null
+                } catch (e) {
+                  console.warn('Failed to load recommendation file:', recId, e)
+                  return null
+                }
               })
             )
-            if (recommendations) {
-              setComments(recommendations as any)
+            const validRecs = recommendations.filter(Boolean)
+            if (validRecs.length) {
+              setComments(validRecs as any)
             }
           }
         }
@@ -243,23 +255,14 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
 
     const subject = claimDetail.credentialSubject || {}
 
-    // Check if it has our native fields that our viewer expects
-    // Our native schema should have:
-    // - credentialSubject.name (person's name)
-    // - credentialSubject.credentialType (skill/volunteer/employment/etc)
-    // - credentialSubject.achievement as an array
-
     const hasNativeName = typeof subject.name === 'string'
     const hasCredentialType = typeof subject.credentialType === 'string'
     const hasArrayAchievement = Array.isArray(subject.achievement)
 
-    // ALL THREE must be present for it to be native
-    // If any are missing, it's external
     if (hasNativeName && hasCredentialType && hasArrayAchievement) {
       return false
     }
 
-    // Otherwise, it's external
     return true
   }
 
@@ -690,34 +693,6 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
                 )}
               </>
             )}
-            {/* {pathname?.includes('/claims') && (
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                <Link href={`/view/${fileID}`}>
-                  <Button
-                    variant='contained'
-                    sx={{
-                      backgroundColor: '#003FE0',
-                      textTransform: 'none',
-                      borderRadius: '100px'
-                    }}
-                  >
-                    View Credential
-                  </Button>
-                </Link>
-                <Link href={`/askforrecommendation/${fileID}`}>
-                  <Button
-                    variant='contained'
-                    sx={{
-                      backgroundColor: '#003FE0',
-                      textTransform: 'none',
-                      borderRadius: '100px'
-                    }}
-                  >
-                    Ask for Recommendation
-                  </Button>
-                </Link>
-              </Box>
-            )} */}
             {(pathname?.includes('/view') || !!propFileID) &&
               claimDetail &&
               !isRecommendationsPage && (
@@ -725,7 +700,7 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
                   sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: '8px',
                     mt: '20px'
                   }}
                 >
