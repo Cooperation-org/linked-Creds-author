@@ -115,8 +115,7 @@ export const getAllClaims = async (storage: any): Promise<any[]> => {
       console.log('🚀 ~ getAllClaims ~ parsedVCs:', parsedVCs)
       if (Array.isArray(parsedVCs) && parsedVCs.length > 0) {
         console.log('Returning cached VCs from localStorage')
-        // Filter to only skill credentials
-        claimsData = parsedVCs.filter(isSkillCredential)
+        claimsData = parsedVCs
       }
     } catch (error) {
       console.error('Error parsing cached VCs from localStorage:', error)
@@ -140,10 +139,8 @@ export const getAllClaims = async (storage: any): Promise<any[]> => {
             ...content,
             id: file
           }
-          // Only add skill credentials
-          if (isSkillCredential(credential)) {
-            vcs.push(credential)
-          }
+          // Add all credentials (schema-agnostic)
+          vcs.push(credential)
         }
       } catch (error) {
         console.error(`Error processing file ${file}:`, error)
@@ -157,9 +154,8 @@ export const getAllClaims = async (storage: any): Promise<any[]> => {
     console.error('Error fetching claims from drive:', error)
     const fallback = localStorage.getItem('vcs')
     if (fallback) {
-      // Filter cached fallback to only skill credentials
       const parsed = JSON.parse(fallback)
-      return Array.isArray(parsed) ? parsed.filter(isSkillCredential) : []
+      return Array.isArray(parsed) ? parsed : []
     }
     return []
   }

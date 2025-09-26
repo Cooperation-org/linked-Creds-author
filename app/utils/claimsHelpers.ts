@@ -64,6 +64,14 @@ export const getCredentialName = (claim: any): string => {
       return 'Invalid Credential'
     }
 
+    // Try top-level name fields first (common in many schemas)
+    if (claim.name && typeof claim.name === 'string') {
+      return claim.name.trim()
+    }
+    if (claim.title && typeof claim.title === 'string') {
+      return claim.title.trim()
+    }
+
     // Safety check for credentialSubject
     if (!claim.credentialSubject || typeof claim.credentialSubject !== 'object') {
       console.warn('Invalid credentialSubject:', claim.credentialSubject)
@@ -85,19 +93,41 @@ export const getCredentialName = (claim: any): string => {
     if (credentialSubject.credentialName) {
       return credentialSubject.credentialName
     }
-
-    // Handle old credential format (achievement array)
-    if (
-      credentialSubject.achievement &&
-      Array.isArray(credentialSubject.achievement) &&
-      credentialSubject.achievement.length > 0 &&
-      credentialSubject.achievement[0] &&
-      credentialSubject.achievement[0].name
-    ) {
-      return credentialSubject.achievement[0].name
+    if (credentialSubject.name && typeof credentialSubject.name === 'string') {
+      return credentialSubject.name.trim()
     }
 
-    // Fallback
+    // Handle achievement-based schemas (OpenBadges, BlockCerts, etc.)
+    if (credentialSubject.achievement) {
+      // Single achievement object (OpenBadges format)
+      if (
+        credentialSubject.achievement.name &&
+        typeof credentialSubject.achievement.name === 'string'
+      ) {
+        return credentialSubject.achievement.name.trim()
+      }
+
+      // Array of achievements (our native format)
+      if (
+        Array.isArray(credentialSubject.achievement) &&
+        credentialSubject.achievement.length > 0 &&
+        credentialSubject.achievement[0] &&
+        credentialSubject.achievement[0].name
+      ) {
+        return credentialSubject.achievement[0].name.trim()
+      }
+    }
+
+    // Fallback to credential ID or type
+    if (claim.id && typeof claim.id === 'string') {
+      return `Credential ${claim.id.slice(-8)}`
+    }
+
+    const types = Array.isArray(claim.type) ? claim.type : [claim.type]
+    if (types.length > 0 && types[0] !== 'VerifiableCredential') {
+      return `${types[0]} Credential`
+    }
+
     return 'Unknown Credential'
   } catch (error) {
     console.error('Error in getCredentialName:', error, claim)
@@ -111,27 +141,70 @@ export const getCredentialType = (claim: any): string => {
       return 'Unknown'
     }
 
-    const types = Array.isArray(claim.type) ? claim.type : []
+    const types: string[] = Array.isArray(claim.type) ? claim.type : [claim.type]
+
+    // Check for specific credential types
     if (types.includes('EmploymentCredential')) return 'Employment'
     if (types.includes('VolunteeringCredential')) return 'Volunteer'
     if (types.includes('PerformanceReviewCredential')) return 'Performance Review'
-    return 'Skill'
+    if (types.includes('OpenBadgeCredential')) return 'Open Badge'
+    if (types.includes('BlockchainCredential')) return 'Blockchain'
+    if (types.includes('LearningCredential')) return 'Learning'
+    if (types.includes('SkillCredential')) return 'Skill'
+
+    // Check credentialSubject for type hints
+    if (claim.credentialSubject) {
+      if (claim.credentialSubject.employeeName) return 'Performance Review'
+      if (claim.credentialSubject.volunteerWork) return 'Volunteer'
+      if (claim.credentialSubject.role) return 'Employment'
+      if (claim.credentialSubject.achievement) return 'Achievement'
+    }
+
+    // Fallback to first non-VerifiableCredential type
+    const nonVcTypes = types.filter((type: string) => type !== 'VerifiableCredential')
+    if (nonVcTypes.length > 0) {
+      return nonVcTypes[0]
+        .replace('Credential', '')
+        .replace(/([A-Z])/g, ' $1')
+        .trim()
+    }
+
+    return 'Verifiable Credential'
   } catch (error) {
     console.error('Error in getCredentialType:', error, claim)
     return 'Unknown'
   }
 }
 
-// Helper function to validate claim object
+// Helper function to validate claim object (schema-agnostic)
 export const isValidClaim = (claim: any): boolean => {
   try {
-    return (
-      claim &&
-      typeof claim === 'object' &&
-      claim.id &&
-      claim.credentialSubject &&
-      typeof claim.credentialSubject === 'object'
-    )
+    // Basic structure validation
+    if (!claim || typeof claim !== 'object') {
+      return false
+    }
+
+    // Must have @context (W3C VC requirement)
+    if (!claim['@context']) {
+      return false
+    }
+
+    // Must have type (W3C VC requirement)
+    if (!claim.type) {
+      return false
+    }
+
+    // Must have credentialSubject (W3C VC requirement)
+    if (!claim.credentialSubject || typeof claim.credentialSubject !== 'object') {
+      return false
+    }
+
+    // Must have either id or be identifiable
+    if (!claim.id && !claim.credentialSubject.id) {
+      return false
+    }
+
+    return true
   } catch (error) {
     console.error('Error validating claim:', error, claim)
     return false
@@ -150,7 +223,7 @@ export const getClaimId = (claim: any): string => {
   }
 }
 
-// Helper function to check if a credential is a skill credential
+// Helper function to check if a credential is a skill credential (legacy - kept for backward compatibility)
 export const isSkillCredential = (claim: any): boolean => {
   try {
     // First validate the claim is valid
@@ -167,6 +240,80 @@ export const isSkillCredential = (claim: any): boolean => {
   } catch (error) {
     console.error('Error in isSkillCredential:', error, claim)
     return false
+  }
+}
+
+// New schema-agnostic helper to get credential description
+export const getCredentialDescription = (claim: any): string => {
+  try {
+    if (!claim || typeof claim !== 'object') {
+      return ''
+    }
+
+    // Try top-level description first
+    if (claim.description && typeof claim.description === 'string') {
+      return claim.description.trim()
+    }
+
+    // Try credentialSubject description
+    if (
+      claim.credentialSubject?.description &&
+      typeof claim.credentialSubject.description === 'string'
+    ) {
+      return claim.credentialSubject.description.trim()
+    }
+
+    // Try achievement description (OpenBadges format)
+    if (
+      claim.credentialSubject?.achievement?.description &&
+      typeof claim.credentialSubject.achievement.description === 'string'
+    ) {
+      return claim.credentialSubject.achievement.description.trim()
+    }
+
+    // Try achievement array description (our native format)
+    if (
+      claim.credentialSubject?.achievement &&
+      Array.isArray(claim.credentialSubject.achievement) &&
+      claim.credentialSubject.achievement.length > 0 &&
+      claim.credentialSubject.achievement[0]?.description
+    ) {
+      return claim.credentialSubject.achievement[0].description.trim()
+    }
+
+    return ''
+  } catch (error) {
+    console.error('Error in getCredentialDescription:', error, claim)
+    return ''
+  }
+}
+
+// Schema-agnostic helper to get issuer name
+export const getIssuerName = (claim: any): string => {
+  try {
+    if (!claim || typeof claim !== 'object') {
+      return 'Unknown Issuer'
+    }
+
+    // Handle string issuer
+    if (typeof claim.issuer === 'string') {
+      return claim.issuer
+    }
+
+    // Handle object issuer
+    if (claim.issuer && typeof claim.issuer === 'object') {
+      if (claim.issuer.name && typeof claim.issuer.name === 'string') {
+        return claim.issuer.name.trim()
+      }
+      if (claim.issuer.id && typeof claim.issuer.id === 'string') {
+        return claim.issuer.id
+      }
+    }
+
+    return 'Unknown Issuer'
+  } catch (error) {
+    console.error('Error in getIssuerName:', error, claim)
+    return 'Unknown Issuer'
   }
 }
 
