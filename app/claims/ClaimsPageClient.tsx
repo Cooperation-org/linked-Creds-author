@@ -518,21 +518,9 @@ const ClaimsPageClient: React.FC = () => {
                           >
                             {getCredentialName(claim)}
                           </Typography>
-                          <Typography
-                            sx={{
-                              color: 'text.secondary',
-                              fontWeight: 'bold',
-                              fontSize: '1.25rem'
-                            }}
-                          >
-                            {getTimeAgo(claim.issuanceDate || new Date().toISOString())}
-                          </Typography>
                         </Box>
                         <Typography sx={{ color: 'text.secondary' }}>
-                          {claim.credentialSubject?.name} - {getCredentialType(claim)} -{' '}
-                          {getTimeDifference(
-                            claim.issuanceDate || new Date().toISOString()
-                          )}
+                          {getCredentialType(claim)}
                         </Typography>
                       </Box>
                     )}

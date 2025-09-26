@@ -9,27 +9,25 @@ import {
   CircularProgress,
   Button
 } from '@mui/material'
-import { useSession, signIn } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { GoogleDriveStorage, saveToGoogleDrive } from '@cooperation/vc-storage'
 import { storeFileTokens } from '../firebase/storage'
-import { saveRaw } from '../utils/googleDrive'
 import {
   analyzeCredential,
   convertToNativeFormat,
   getFetchStrategy,
   mightHaveCORSIssues
 } from '../utils/externalCredentials'
-import { normalizeCredential, validateNormalizedCredential } from '../utils/normalize'
-import { verifyCredentialWithEngine } from '../utils/verification'
 import {
   storeCredentialMetadata,
   updateCredentialVerification
 } from '../utils/credentialMetadata'
 import { incrementExternalImports } from '../firebase/firestore'
+import { incrementCredentialTypeCount } from '../firebase/firestore'
 
 const formLabelStyles = {
   fontFamily: 'Lato',
@@ -186,14 +184,7 @@ function SimpleCredentialForm() {
 
   const handleEnhancedImport = async (vcData: any) => {
     try {
-      // Normalize the credential
-      const normalized = normalizeCredential(vcData)
-      validateNormalizedCredential(normalized)
-
-      // Verify the credential
-      const verificationResult = await verifyCredentialWithEngine(normalized)
-
-      // Save normalized credential to Google Drive
+      // Save ONLY the original credential to Google Drive
       const storage = new GoogleDriveStorage(accessToken!)
 
       // 1) Save original external credential (as-is)
@@ -206,21 +197,13 @@ function SimpleCredentialForm() {
       // 2) Save normalized credential
       const normalizedFile = await saveToGoogleDrive({
         storage,
-        data: normalized,
+        data: vcData,
         type: 'VC'
       })
-
       // Store file tokens
       await Promise.all([
         storeFileTokens({
           googleFileId: originalFile.id,
-          tokens: {
-            accessToken: accessToken!,
-            refreshToken: refreshToken as string
-          }
-        }),
-        storeFileTokens({
-          googleFileId: normalizedFile.id,
           tokens: {
             accessToken: accessToken!,
             refreshToken: refreshToken as string
@@ -272,12 +255,8 @@ function SimpleCredentialForm() {
       // For normalized
       await storeCredentialMetadata(normalizedFile.id, {
         owner: session?.user?.email || '',
-        normalized: true,
-        verification: {
-          status: verificationResult.ok ? 'verified' : 'unverified',
-          ok: verificationResult.ok,
-          details: verificationResult.details
-        },
+        normalized: false,
+        verification: { status: 'pending' },
         source: credentialInfo.format || 'unknown',
         originalType: credentialInfo.provider || 'unknown'
       })
@@ -305,8 +284,8 @@ function SimpleCredentialForm() {
 
       setFetchResult({
         success: true,
-        data: normalized,
-        error: `Enhanced import successful! Redirecting to recommendation workflow...`
+        data: vcData,
+        error: `Import successful! Redirecting to recommendation workflow...`
       })
 
       // Auto-navigate to recommender workflow
