@@ -118,6 +118,7 @@ const LinkedCreds_FEATURES = [
 const HeroSection: React.FC<SectionProps & { showCards: boolean }> = ({ showCards }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'))
   return (
     <Box
       sx={{
@@ -129,36 +130,38 @@ const HeroSection: React.FC<SectionProps & { showCards: boolean }> = ({ showCard
         mr: 'auto',
         width: { xs: '100%', md: '100%' },
         maxWidth: '1400px',
-        px: { xs: 2, md: 'auto' },
-        pb: 4,
-        pt: { xs: '43px', md: '75px' }
+        px: { xs: '16px', sm: '24px', md: '32px', lg: '40px' },
+        pb: { xs: 2, sm: 3, md: 4 },
+        pt: { xs: '20px', sm: '30px', md: '50px', lg: '75px' }
       }}
     >
       <Box
         sx={{
-          width: { xs: '100%', md: '40vw' },
-          maxWidth: { xs: '100%', md: '771px' },
-          textAlign: 'left',
-          alignSelf: { xs: 'center', md: 'flex-start' },
-          pr: { xs: 0, md: 0 },
-          mr: { xs: 0, md: '71px' },
-          height: { xs: 'auto', md: '432px' }
-          // mt: { xs: '43px', md: 0 }
+          width: { xs: '100%', sm: '100%', md: '45%', lg: '40vw' },
+          maxWidth: { xs: '100%', sm: '500px', md: '600px', lg: '771px' },
+          textAlign: { xs: 'center', sm: 'center', md: 'left' },
+          alignSelf: { xs: 'center', sm: 'center', md: 'flex-start' },
+          pr: { xs: 0, sm: 0, md: 0 },
+          mr: { xs: 0, sm: 0, md: '40px', lg: '71px' },
+          height: { xs: 'auto', sm: 'auto', md: 'auto', lg: '432px' },
+          mb: { xs: '30px', sm: '40px', md: 0 }
         }}
       >
         <Typography
           variant='h2'
           sx={{
             color: theme.palette.t3Black,
-            mb: { xs: '15px', md: '10px' },
+            mb: { xs: '15px', sm: '20px', md: '10px' },
             fontFamily: 'poppins',
-            fontSize: { xs: '30px', md: '50px' },
+            fontSize: { xs: '28px', sm: '36px', md: '42px', lg: '50px' },
             fontWeight: 'bolder',
-            lineHeight: { xs: '37.5px', md: '62.5px' },
-            maxWidth: { xs: '360px', md: '771px' }
+            lineHeight: { xs: '35px', sm: '45px', md: '52px', lg: '62.5px' },
+            maxWidth: { xs: '100%', sm: '500px', md: '600px', lg: '771px' }
           }}
         >
           {isMobile ? (
+            'Showcase the skills that define you.'
+          ) : isTablet ? (
             'Showcase the skills that define you.'
           ) : (
             <>
@@ -173,13 +176,15 @@ const HeroSection: React.FC<SectionProps & { showCards: boolean }> = ({ showCard
           variant='body1'
           sx={{
             color: theme.palette.t3BodyText,
-            mb: '30px',
-            fontSize: { xs: '16px', md: '18px' },
-            lineHeight: '22.5px'
+            mb: { xs: '25px', sm: '30px', md: '30px' },
+            fontSize: { xs: '16px', sm: '17px', md: '18px' },
+            lineHeight: { xs: '22px', sm: '24px', md: '26px' }
           }}
         >
           {isMobile ? (
-            'Whether it’s caring for your family, volunteering, a side hustle, or on-the-job learning, LinkedCreds helps you document, verify, and share your unique experiences.'
+            'Whether it&apos;s caring for your family, volunteering, a side hustle, or on-the-job learning, LinkedCreds helps you document, verify, and share your unique experiences.'
+          ) : isTablet ? (
+            'Whether it&apos;s caring for your family, volunteering, a side hustle, or on-the-job learning, LinkedCreds helps you document, verify, and share your unique experiences.'
           ) : (
             <>
               Whether it&apos;s caring for your family, volunteering, a side hustle,
@@ -197,18 +202,18 @@ const HeroSection: React.FC<SectionProps & { showCards: boolean }> = ({ showCard
             sx={{
               backgroundColor: theme.palette.t3ButtonBlue,
               color: '#FFFFFF',
-              width: { xs: '195px', md: '177px' },
-              maxWidth: { xs: '195px', md: '177px' },
-              maxHeight: { xs: '40px', md: '52px' },
+              width: { xs: '200px', sm: '220px', md: '200px', lg: '177px' },
+              maxWidth: { xs: '200px', sm: '220px', md: '200px', lg: '177px' },
+              height: { xs: '44px', sm: '48px', md: '50px', lg: '52px' },
               borderRadius: '100px',
-              py: '22px',
-              px: '20px',
+              py: { xs: '12px', sm: '14px', md: '16px', lg: '22px' },
+              px: { xs: '24px', sm: '28px', md: '32px', lg: '20px' },
               textTransform: 'none',
-              fontSize: '16px',
+              fontSize: { xs: '15px', sm: '16px', md: '16px' },
               fontFamily: 'Roboto',
               lineHeight: '20px',
               fontWeight: '500',
-              mb: { xs: '19px', md: 0 }
+              mb: { xs: '20px', sm: '25px', md: 0 }
             }}
           >
             Build your first skill
@@ -222,11 +227,34 @@ const HeroSection: React.FC<SectionProps & { showCards: boolean }> = ({ showCard
             display: 'flex',
             flexDirection: 'row',
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: { md: '8px', lg: '15px' },
+            px: { md: '10px', lg: '20px' },
+            overflow: 'hidden',
+            width: { md: '55%', lg: '60%' },
+            maxWidth: { md: '100%', lg: 'none' }
           }}
         >
-          {EXAMPLE_CARDS.map(card => (
-            <Card key={card.id} {...card} />
+          {EXAMPLE_CARDS.map((card, index) => (
+            <Box
+              key={card.id}
+              sx={{
+                transform: card.rotation,
+                zIndex: 3 - index,
+                flexShrink: 0,
+                '&:hover': {
+                  transform: `${card.rotation} scale(1.05)`,
+                  zIndex: 10,
+                  transition: 'transform 0.3s ease, z-index 0.3s ease'
+                }
+              }}
+            >
+              <Card
+                {...card}
+                width={isTablet ? '160px' : '195px'}
+                height={isTablet ? '320px' : card.height}
+              />
+            </Box>
           ))}
         </Box>
       )}
@@ -238,19 +266,19 @@ const MobileLinkedCredsSection: React.FC<SectionProps> = ({ theme }) => (
   <Box
     sx={{
       background: 'linear-gradient(180deg, #F1F5FC, #FFFFFF)',
-      py: '15px',
-      px: { xs: '10px', md: 8 },
-      mt: '15px'
+      py: { xs: '20px', sm: '25px' },
+      px: { xs: '16px', sm: '24px', md: '32px' },
+      mt: { xs: '20px', sm: '25px' }
     }}
   >
     <Typography
       variant='h4'
       sx={{
         color: theme.palette.t3Black,
-        textAlign: { xs: 'left', md: 'center' },
-        mb: '22.5px',
+        textAlign: { xs: 'left', sm: 'center' },
+        mb: { xs: '20px', sm: '25px' },
         fontFamily: 'poppins',
-        fontSize: '22px',
+        fontSize: { xs: '20px', sm: '22px' },
         fontWeight: '700'
       }}
     >
@@ -259,21 +287,21 @@ const MobileLinkedCredsSection: React.FC<SectionProps> = ({ theme }) => (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: '15px',
-        pt: '15px',
-        pb: '30px'
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: { xs: 'center', sm: 'space-between' },
+        alignItems: { xs: 'center', sm: 'flex-start' },
+        gap: { xs: '20px', sm: '15px' },
+        pt: { xs: '15px', sm: '15px' },
+        pb: { xs: '25px', sm: '30px' }
       }}
     >
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1, textAlign: { xs: 'center', sm: 'left' } }}>
         <Typography
           variant='body1'
           sx={{
             color: theme.palette.t3BodyText,
-            mb: '15px',
-            fontSize: '18px',
+            mb: { xs: '15px', sm: '15px' },
+            fontSize: { xs: '16px', sm: '18px' },
             fontWeight: 700
           }}
         >
@@ -286,10 +314,11 @@ const MobileLinkedCredsSection: React.FC<SectionProps> = ({ theme }) => (
           component='ul'
           sx={{
             color: theme.palette.t3BodyText,
-            pl: 2,
+            pl: { xs: 0, sm: 2 },
             mb: 0,
-            fontSize: '14px',
-            fontWeight: 400
+            fontSize: { xs: '13px', sm: '14px' },
+            fontWeight: 400,
+            textAlign: { xs: 'center', sm: 'left' }
           }}
         >
           {LinkedCreds_FEATURES.map(feature => (
@@ -299,11 +328,18 @@ const MobileLinkedCredsSection: React.FC<SectionProps> = ({ theme }) => (
           ))}
         </Box>
       </Box>
-      <Box sx={{ height: '100%', width: 'auto' }}>
+      <Box
+        sx={{
+          height: '100%',
+          width: 'auto',
+          display: 'flex',
+          justifyContent: 'center'
+        }}
+      >
         <Card
           {...EXAMPLE_CARDS[1]}
-          width='195px'
-          height='410px'
+          width='160px'
+          height='350px'
           rotation='rotate(0deg)'
           showPlayButton={true}
           showTimer={true}
@@ -315,16 +351,23 @@ const MobileLinkedCredsSection: React.FC<SectionProps> = ({ theme }) => (
 )
 
 const StepsSection: React.FC<SectionProps> = ({ theme }) => (
-  <Box sx={{ maxWidth: '1400px', mr: 'auto', ml: 'auto' }}>
+  <Box
+    sx={{
+      maxWidth: '1400px',
+      mr: 'auto',
+      ml: 'auto',
+      px: { xs: '16px', sm: '24px', md: '32px', lg: '40px' }
+    }}
+  >
     <Box
       sx={{
         display: 'flex',
-        width: { xs: '92.308vw', md: '360px' },
-        height: '39px',
+        width: { xs: '100%', sm: '400px', md: '450px', lg: '500px' },
+        height: { xs: 'auto', sm: '39px' },
         mr: 'auto',
         ml: 'auto',
-        mt: { xs: '15px', md: '60px' },
-        mb: '15px',
+        mt: { xs: '30px', sm: '40px', md: '50px', lg: '60px' },
+        mb: { xs: '20px', sm: '25px', md: '30px' },
         justifyContent: 'center',
         alignItems: 'center'
       }}
@@ -333,13 +376,13 @@ const StepsSection: React.FC<SectionProps> = ({ theme }) => (
         sx={{
           textAlign: 'center',
           color: theme.palette.t3Black,
-          fontSize: '22px',
-          pb: '10px',
-          px: '15px',
+          fontSize: { xs: '20px', sm: '22px', md: '24px' },
+          pb: { xs: '8px', sm: '10px' },
+          px: { xs: '10px', sm: '15px' },
           fontFamily: 'Poppins',
           fontStyle: 'normal',
           fontWeight: '600',
-          lineHeight: '27.5px'
+          lineHeight: { xs: '25px', sm: '27.5px', md: '30px' }
         }}
       >
         How it works - 3 simple steps
@@ -348,10 +391,10 @@ const StepsSection: React.FC<SectionProps> = ({ theme }) => (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        gap: { xs: 3, md: 4 },
-        px: { xs: '17.5px', md: 8 },
-        mb: { xs: '15px', md: '0px' }
+        flexDirection: { xs: 'column', sm: 'column', md: 'row' },
+        gap: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 0, sm: '20px', md: '32px', lg: '40px' },
+        mb: { xs: '20px', sm: '25px', md: '30px' }
       }}
     >
       {STEPS.map(step => (
@@ -360,29 +403,34 @@ const StepsSection: React.FC<SectionProps> = ({ theme }) => (
           sx={{
             background: '#EEF5FF',
             borderRadius: '8px',
-            pt: '15px',
-            pb: { xs: '15px', md: '30px' },
-            px: '10px',
+            pt: { xs: '20px', sm: '15px', md: '15px' },
+            pb: { xs: '20px', sm: '15px', md: '30px' },
+            px: { xs: '15px', sm: '10px', md: '10px' },
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             flex: 1,
-            textAlign: 'center'
+            textAlign: 'center',
+            minHeight: { xs: 'auto', sm: '280px', md: '300px' }
           }}
         >
           <Box
             component='img'
             src={step.icon}
             alt={step.title}
-            sx={{ mb: '15px', width: '60px', height: '60px' }}
+            sx={{
+              mb: { xs: '15px', sm: '15px' },
+              width: { xs: '50px', sm: '60px' },
+              height: { xs: '50px', sm: '60px' }
+            }}
           />
           <Typography
             sx={{
               color: theme.palette.t3BodyText,
-              mb: '15px',
-              fontSize: '18px',
+              mb: { xs: '12px', sm: '15px' },
+              fontSize: { xs: '16px', sm: '18px' },
               fontWeight: 700,
-              lineHeight: '22px'
+              lineHeight: { xs: '20px', sm: '22px' }
             }}
           >
             {step.title}
@@ -391,8 +439,9 @@ const StepsSection: React.FC<SectionProps> = ({ theme }) => (
             sx={{
               fontFamily: 'Lato',
               fontWeight: 400,
-              fontSize: '18px',
-              color: theme.palette.t3BodyText
+              fontSize: { xs: '15px', sm: '16px', md: '18px' },
+              color: theme.palette.t3BodyText,
+              lineHeight: { xs: '20px', sm: '22px', md: '24px' }
             }}
           >
             {step.description}
@@ -408,16 +457,16 @@ const StepsSection: React.FC<SectionProps> = ({ theme }) => (
           color: '#FFFFFF',
           fontFamily: 'Roboto',
           borderRadius: '100px',
-          py: 1.5,
-          px: 4,
+          py: { xs: 1.5, sm: 1.5 },
+          px: { xs: 3, sm: 4 },
           textTransform: 'none',
-          fontSize: '16px',
+          fontSize: { xs: '15px', sm: '16px' },
           lineHeight: '20px',
           mx: 'auto',
-          display: { xs: 'block', md: 'none' },
-          mb: '30px',
-          width: { xs: '100%', md: 'auto' },
-          maxWidth: '360px',
+          display: { xs: 'block', sm: 'block', md: 'none' },
+          mb: { xs: '25px', sm: '30px' },
+          width: { xs: '100%', sm: 'auto' },
+          maxWidth: { xs: '100%', sm: '360px' },
           fontWeight: 500
         }}
       >

@@ -28,7 +28,13 @@ const HamburgerMenu = () => {
   return (
     <>
       <IconButton
-        sx={{ padding: '0px', mr: '15px' }}
+        sx={{
+          padding: { xs: '8px', sm: '10px' },
+          mr: { xs: '0px', sm: '5px' },
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)'
+          }
+        }}
         onClick={toggleDrawer}
         aria-label='Open menu'
       >
@@ -37,11 +43,13 @@ const HamburgerMenu = () => {
       <Drawer anchor='left' open={isOpen} onClose={toggleDrawer}>
         <Box
           sx={{
-            width: '300px',
-            padding: '20px',
+            width: { xs: '280px', sm: '300px' },
+            padding: { xs: '16px', sm: '20px' },
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-start'
+            alignItems: 'flex-start',
+            height: '100%',
+            overflowY: 'auto'
           }}
         >
           {/* Header Section */}
@@ -62,9 +70,9 @@ const HamburgerMenu = () => {
                 <Logo />
                 <Typography
                   sx={{
-                    ml: '8px',
+                    ml: { xs: '6px', sm: '8px' },
                     fontWeight: 700,
-                    fontSize: '18px',
+                    fontSize: { xs: '16px', sm: '18px' },
                     color: '#000'
                   }}
                 >

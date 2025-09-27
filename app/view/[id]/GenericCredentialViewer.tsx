@@ -181,33 +181,38 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
     <Paper
       elevation={0}
       sx={{
-        p: 3,
+        p: { xs: 2, sm: 3 },
         border: '1px solid #003FE0',
         borderRadius: '10px',
-        position: 'relative'
+        position: 'relative',
+        maxWidth: '100%',
+        overflow: 'hidden'
       }}
     >
       {/* QR Code and View Source */}
       {fileID && qrCodeDataUrl && (
         <Box
           sx={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
+            position: { xs: 'static', sm: 'absolute' },
+            top: { sm: '10px' },
+            right: { sm: '10px' },
             display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: '12px'
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            gap: { xs: '8px', sm: '12px' },
+            mb: { xs: 2, sm: 0 },
+            maxWidth: { xs: '100%', sm: 'auto' }
           }}
         >
           <Link
             href={`/api/credential-raw/${fileID}`}
             target='_blank'
             sx={{
-              fontSize: '16px',
+              fontSize: { xs: '14px', sm: '16px' },
               fontWeight: 600,
               color: '#003FE0',
-              textDecoration: 'underline'
+              textDecoration: 'underline',
+              wordBreak: 'break-all'
             }}
           >
             View Source
@@ -215,8 +220,12 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
           <Image
             src={qrCodeDataUrl}
             alt='QR Code for credential source'
-            width={120}
-            height={120}
+            width={80}
+            height={80}
+            style={{
+              maxWidth: '100%',
+              height: 'auto'
+            }}
           />
         </Box>
       )}
@@ -237,15 +246,42 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
 
       {/* Main Credential Info (schema-agnostic) */}
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center', mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: '5px',
+            alignItems: 'flex-start',
+            mb: 2,
+            flexWrap: 'wrap'
+          }}
+        >
           <SVGBadge />
-          <Typography variant='h5' sx={{ fontWeight: 700 }}>
+          <Typography
+            variant='h5'
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: '18px', sm: '20px', md: '24px' },
+              lineHeight: { xs: '22px', sm: '24px', md: '28px' },
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
+            }}
+          >
             {getPreferredTitle()}
           </Typography>
         </Box>
 
         {getPreferredDescription() && (
-          <Typography sx={{ mb: 2 }}>{getPreferredDescription()}</Typography>
+          <Typography
+            sx={{
+              mb: 2,
+              fontSize: { xs: '14px', sm: '16px' },
+              lineHeight: { xs: '20px', sm: '22px' },
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
+            }}
+          >
+            {getPreferredDescription()}
+          </Typography>
         )}
       </Box>
 
@@ -253,7 +289,14 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
         <Button
           variant='outlined'
           onClick={handleViewOriginal}
-          sx={{ textTransform: 'none', borderRadius: '100px' }}
+          sx={{
+            textTransform: 'none',
+            borderRadius: '100px',
+            fontSize: { xs: '14px', sm: '16px' },
+            py: { xs: 1, sm: 1.5 },
+            px: { xs: 2, sm: 3 },
+            mb: 2
+          }}
         >
           View Original
         </Button>
@@ -264,19 +307,50 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
       {/* Issuer Information */}
       {issuer.name && (
         <Box sx={{ mb: 3 }}>
-          <Typography variant='h6' sx={{ mb: 1, fontWeight: 600 }}>
-          <Typography variant='h6' sx={{ mb: 1, fontWeight: 600 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              mb: 1,
+              fontWeight: 600,
+              fontSize: { xs: '16px', sm: '18px' }
+            }}
+          >
             Issued By
           </Typography>
-          <Typography>{issuer.name}</Typography>
+          <Typography
+            sx={{
+              fontSize: { xs: '14px', sm: '16px' },
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
+            }}
+          >
+            {issuer.name}
+          </Typography>
           {issuer.url && (
-            <Link href={issuer.url} target='_blank' sx={{ fontSize: '14px' }}>
-            <Link href={issuer.url} target='_blank' sx={{ fontSize: '14px' }}>
+            <Link
+              href={issuer.url}
+              target='_blank'
+              sx={{
+                fontSize: { xs: '12px', sm: '14px' },
+                wordBreak: 'break-all',
+                overflowWrap: 'break-word',
+                display: 'block',
+                mt: 0.5
+              }}
+            >
               {issuer.url}
             </Link>
           )}
           {issuer.email && (
-            <Typography sx={{ fontSize: '14px', color: 'text.secondary' }}>
+            <Typography
+              sx={{
+                fontSize: { xs: '12px', sm: '14px' },
+                color: 'text.secondary',
+                wordBreak: 'break-all',
+                overflowWrap: 'break-word',
+                mt: 0.5
+              }}
+            >
               {issuer.email}
             </Typography>
           )}
@@ -286,25 +360,63 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
       {/* Subject/Achievement Information (handles array or object) */}
       {subject?.achievement && (
         <Box sx={{ mb: 3 }}>
-          <Typography variant='h6' sx={{ mb: 1, fontWeight: 600 }}>
-          <Typography variant='h6' sx={{ mb: 1, fontWeight: 600 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              mb: 1,
+              fontWeight: 600,
+              fontSize: { xs: '16px', sm: '18px' }
+            }}
+          >
             Achievement Details
           </Typography>
 
           {subject?.achievement?.name && (
-            <Typography sx={{ fontWeight: 500, mb: 1 }}>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                mb: 1,
+                fontSize: { xs: '14px', sm: '16px' },
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+            >
               {subject.achievement.name}
             </Typography>
           )}
 
           {subject?.achievement?.description && (
-            <Typography sx={{ mb: 1 }}>{subject.achievement.description}</Typography>
+            <Typography
+              sx={{
+                mb: 1,
+                fontSize: { xs: '14px', sm: '16px' },
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+            >
+              {subject.achievement.description}
+            </Typography>
           )}
 
           {getCriteriaText() && (
             <Box sx={{ mt: 2 }}>
-              <Typography sx={{ fontWeight: 500 }}>Criteria:</Typography>
-              <Typography>{getCriteriaText()}</Typography>
+              <Typography
+                sx={{
+                  fontWeight: 500,
+                  fontSize: { xs: '14px', sm: '16px' }
+                }}
+              >
+                Criteria:
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: '14px', sm: '16px' },
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word'
+                }}
+              >
+                {getCriteriaText()}
+              </Typography>
             </Box>
           )}
         </Box>
@@ -313,18 +425,71 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
       {/* Additional info (issuer/subject IDs) */}
       {(issuerId || subjectId) && (
         <Box sx={{ mb: 2 }}>
-          <Typography variant='h6' sx={{ mb: 1, fontWeight: 600 }}>
+          <Typography
+            variant='h6'
+            sx={{
+              mb: 1,
+              fontWeight: 600,
+              fontSize: { xs: '16px', sm: '18px' }
+            }}
+          >
             Identifiers
           </Typography>
           {issuerId && (
-            <Typography sx={{ fontSize: '14px', color: 'text.secondary' }}>
-              Issuer ID: {issuerId}
-            </Typography>
+            <Box sx={{ mb: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: { xs: '12px', sm: '14px' },
+                  color: 'text.secondary',
+                  fontWeight: 500
+                }}
+              >
+                Issuer ID:
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: '11px', sm: '12px' },
+                  color: 'text.secondary',
+                  wordBreak: 'break-all',
+                  overflowWrap: 'break-word',
+                  fontFamily: 'monospace',
+                  backgroundColor: '#f5f5f5',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  mt: 0.5
+                }}
+              >
+                {issuerId}
+              </Typography>
+            </Box>
           )}
           {subjectId && (
-            <Typography sx={{ fontSize: '14px', color: 'text.secondary' }}>
-              Subject ID: {subjectId}
-            </Typography>
+            <Box sx={{ mb: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: { xs: '12px', sm: '14px' },
+                  color: 'text.secondary',
+                  fontWeight: 500
+                }}
+              >
+                Subject ID:
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: '11px', sm: '12px' },
+                  color: 'text.secondary',
+                  wordBreak: 'break-all',
+                  overflowWrap: 'break-word',
+                  fontFamily: 'monospace',
+                  backgroundColor: '#f5f5f5',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  mt: 0.5
+                }}
+              >
+                {subjectId}
+              </Typography>
+            </Box>
           )}
         </Box>
       )}
@@ -332,12 +497,23 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
       {/* Dates */}
       <Box sx={{ mb: 3 }}>
         {credential.issuanceDate && (
-          <Typography sx={{ fontSize: '14px', color: 'text.secondary' }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '12px', sm: '14px' },
+              color: 'text.secondary',
+              mb: 0.5
+            }}
+          >
             Issued: {new Date(credential.issuanceDate).toLocaleDateString()}
           </Typography>
         )}
         {credential.expirationDate && (
-          <Typography sx={{ fontSize: '14px', color: 'text.secondary' }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '12px', sm: '14px' },
+              color: 'text.secondary'
+            }}
+          >
             Expires: {new Date(credential.expirationDate).toLocaleDateString()}
           </Typography>
         )}
@@ -345,44 +521,83 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
 
       {/* Credential Status */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 3 }}>
-        <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#000E40' }}>
+        <Typography
+          sx={{
+            fontSize: { xs: '14px', sm: '16px' },
+            fontWeight: 700,
+            color: '#000E40'
+          }}
+        >
           Credential Status
         </Typography>
 
-
-        <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-          <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
+        <Box sx={{ display: 'flex', gap: '5px', alignItems: 'flex-start' }}>
+          <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px', flexShrink: 0 }}>
             <CheckMarkSVG />
           </Box>
-          <Typography>Has a valid digital signature</Typography>
+          <Typography
+            sx={{
+              fontSize: { xs: '13px', sm: '14px' },
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
+            }}
+          >
+            Has a valid digital signature
+          </Typography>
         </Box>
 
 
         {credential.credentialStatus && (
-          <Box sx={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-            <Box sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px' }}>
+          <Box sx={{ display: 'flex', gap: '5px', alignItems: 'flex-start' }}>
+            <Box
+              sx={{ borderRadius: '4px', bgcolor: '#C2F1BE', p: '4px', flexShrink: 0 }}
+            >
               <CheckMarkSVG />
             </Box>
-            <Typography>Has credential status information</Typography>
+            <Typography
+              sx={{
+                fontSize: { xs: '13px', sm: '14px' },
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+            >
+              Has credential status information
+            </Typography>
           </Box>
         )}
       </Box>
 
       {/* Raw JSON Preview (collapsed by default) */}
       <details style={{ marginTop: '20px' }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>View Raw JSON</summary>
-        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>View Raw JSON</summary>
+        <summary
+          style={{
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '14px',
+            padding: '8px 0'
+          }}
+        >
+          View Raw JSON
+        </summary>
         <Box
           sx={{
             mt: 2,
-            p: 2,
+            p: { xs: 1, sm: 2 },
             bgcolor: '#f5f5f5',
             borderRadius: '4px',
             overflow: 'auto',
             maxHeight: '400px'
           }}
         >
-          <pre style={{ margin: 0, fontSize: '12px' }}>
+          <pre
+            style={{
+              margin: 0,
+              fontSize: '10px',
+              wordBreak: 'break-all',
+              overflowWrap: 'break-word',
+              whiteSpace: 'pre-wrap'
+            }}
+          >
             {JSON.stringify(credential, null, 2)}
           </pre>
         </Box>

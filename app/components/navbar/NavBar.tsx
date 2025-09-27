@@ -30,16 +30,19 @@ const NavBar = () => {
     <Box
       sx={{
         width: '100vw',
-        height: { xs: '27px', md: '100px' },
+        height: { xs: '60px', sm: '70px', md: '80px', lg: '100px' },
         display: 'flex',
         position: 'sticky',
         alignItems: 'center',
         backgroundColor: 'white',
         justifyContent: 'space-between',
-        my: { xs: '18px', md: '0px' },
+        my: { xs: '10px', sm: '15px', md: '0px' },
+        px: { xs: '16px', sm: '20px', md: '0px' },
         boxShadow: {
+          sm: '0px 2px 8px rgba(209, 213, 219, 0.3)',
           md: '0px 4px 10px rgba(209, 213, 219, 0.5)'
-        }
+        },
+        zIndex: 1000
       }}
     >
       {/* Logo and Name */}
@@ -48,11 +51,12 @@ const NavBar = () => {
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          pl: { xs: '15px', md: '9.6vw' }
+          pl: { xs: '0px', sm: '0px', md: '9.6vw' },
+          gap: { xs: '8px', sm: '10px', md: '12px' }
         }}
       >
         <Link href='/' aria-label='LinkedCreds Home'>
-          <Box sx={{ display: 'flex', alignItems: 'center', marginRight: '0px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Logo />
           </Box>
         </Link>
@@ -60,27 +64,34 @@ const NavBar = () => {
           <Typography
             sx={{
               fontWeight: '700',
-              fontSize: { xs: '18px', md: '24px' },
+              fontSize: { xs: '16px', sm: '18px', md: '22px', lg: '24px' },
               color: theme.palette.t3DarkSlateBlue,
-              fontFamily: 'inter'
+              fontFamily: 'inter',
+              lineHeight: 1.2
             }}
           >
             LinkedCreds
           </Typography>
         </Link>
       </Box>
-      <Box sx={{ width: '100%' }}></Box>
+      <Box
+        sx={{
+          width: '100%',
+          display: { xs: 'none', md: 'block' }
+        }}
+      ></Box>
 
       {/* Navigation Links and Sign Button */}
       <Box
         sx={{
-          width: '55%',
+          width: { md: '65%', lg: '60%' },
           display: { xs: 'none', md: 'flex' },
           alignItems: 'center',
           justifyContent: session ? 'space-between' : 'flex-end',
-          mr: { xs: '15px', md: '10.938vw' },
-          gap: '3.9vw',
-          textWrap: 'nowrap'
+          mr: { md: '4vw', lg: '10.938vw' },
+          gap: { md: '1.5vw', lg: '3.9vw' },
+          textWrap: 'nowrap',
+          flexWrap: { md: 'nowrap', lg: 'nowrap' }
         }}
       >
         {session && (
@@ -95,12 +106,13 @@ const NavBar = () => {
               >
                 <Typography
                   sx={{
-                    fontSize: '16px',
+                    fontSize: { md: '13px', lg: '16px' },
                     fontWeight: isActive('/credentialForm') ? '600' : '400',
                     color: isActive('/credentialForm')
                       ? '#003FE0'
                       : theme.palette.t3DarkSlateBlue,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Add a New Skill
@@ -123,12 +135,13 @@ const NavBar = () => {
               >
                 <Typography
                   sx={{
-                    fontSize: '16px',
+                    fontSize: { md: '13px', lg: '16px' },
                     fontWeight: isActive('/credentialImportForm') ? '600' : '400',
                     color: isActive('/credentialImportForm')
                       ? '#003FE0'
                       : theme.palette.t3DarkSlateBlue,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Import Skill Credential
@@ -151,12 +164,13 @@ const NavBar = () => {
               >
                 <Typography
                   sx={{
-                    fontSize: '16px',
+                    fontSize: { md: '13px', lg: '16px' },
                     fontWeight: isActive('/claims') ? '600' : '400',
                     color: isActive('/claims')
                       ? '#003FE0'
                       : theme.palette.t3DarkSlateBlue,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   My Skills
@@ -179,12 +193,13 @@ const NavBar = () => {
               >
                 <Typography
                   sx={{
-                    fontSize: '16px',
+                    fontSize: { md: '13px', lg: '16px' },
                     fontWeight: isActive('/analytics') ? '600' : '400',
                     color: isActive('/analytics')
                       ? '#003FE0'
                       : theme.palette.t3DarkSlateBlue,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Analytics
@@ -202,19 +217,29 @@ const NavBar = () => {
               </Box>
             </Link>
             <Link href='/help' passHref>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Box
+                sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+              >
                 <Typography
                   sx={{
-                    fontSize: '16px',
+                    fontSize: { md: '13px', lg: '16px' },
                     fontWeight: isActive('/help') ? '600' : '400',
                     color: isActive('/help') ? '#003FE0' : theme.palette.t3DarkSlateBlue,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Help & FAQ
                 </Typography>
                 {isActive('/help') && (
-                  <Box sx={{ height: '2px', width: '100%', mt: '5px', backgroundColor: '#003FE0' }} />
+                  <Box
+                    sx={{
+                      height: '2px',
+                      width: '100%',
+                      mt: '5px',
+                      backgroundColor: '#003FE0'
+                    }}
+                  />
                 )}
               </Box>
             </Link>
@@ -225,13 +250,16 @@ const NavBar = () => {
         {session ? (
           <Button
             sx={{
-              width: '148px',
+              width: { md: '100px', lg: '148px' },
+              height: { md: '32px', lg: '40px' },
               fontFamily: 'roboto',
-              fontSize: '16px',
+              fontSize: { md: '12px', lg: '16px' },
               fontWeight: '500',
               lineHeight: '20px',
               textAlign: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              minWidth: 'auto',
+              padding: { md: '6px 12px', lg: '10px 24px' }
             }}
             variant='actionButton'
             onClick={handleSignOut}
@@ -241,13 +269,16 @@ const NavBar = () => {
         ) : (
           <Button
             sx={{
-              width: '148px',
+              width: { md: '100px', lg: '148px' },
+              height: { md: '32px', lg: '40px' },
               fontFamily: 'roboto',
-              fontSize: '16px',
+              fontSize: { md: '12px', lg: '16px' },
               fontWeight: '500',
               lineHeight: '20px',
               textAlign: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              minWidth: 'auto',
+              padding: { md: '6px 12px', lg: '10px 24px' }
             }}
             variant='actionButton'
             onClick={() => signIn('google')}
@@ -258,7 +289,14 @@ const NavBar = () => {
       </Box>
 
       {/* Small Screen - Hamburger Menu */}
-      <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
+      <Box
+        sx={{
+          display: { xs: 'flex', md: 'none' },
+          alignItems: 'center',
+          justifyContent: 'center',
+          pr: { xs: '0px', sm: '0px' }
+        }}
+      >
         <HamburgerMenu aria-label='Open menu' />
       </Box>
     </Box>
