@@ -268,7 +268,6 @@ const FooterItem: React.FC<FooterItemProps> = ({
   isEmailActions
 }) => {
   const [snackbarOpen, setSnackbarOpen] = React.useState(false)
-  const [showActions, setShowActions] = React.useState(false)
   const emailAddress = 'support@linkedcreds.allskillsscount.com'
 
   const textStyle = {
@@ -307,66 +306,53 @@ const FooterItem: React.FC<FooterItemProps> = ({
         </Box>
       ) : isEmailActions ? (
         <Box
-          onMouseEnter={() => setShowActions(true)}
-          onMouseLeave={() => setShowActions(false)}
-          onFocus={() => setShowActions(true)}
-          onBlur={() => setShowActions(false)}
-          onTouchStart={() => setShowActions(prev => !prev)}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            ml: 1.5,
+            flexWrap: 'wrap'
+          }}
         >
-          {showActions ? (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                ml: 1.5,
-                flexWrap: 'wrap'
-              }}
-            >
-              <Button
-                variant='contained'
-                size='small'
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(emailAddress)
-                    setSnackbarOpen(true)
-                  } catch (err) {
-                    setSnackbarOpen(true)
-                  }
-                }}
-                sx={{
-                  color: '#ffffff',
-                  textTransform: 'none',
-                  backgroundColor: '#3A4260',
-                  '&:hover': { backgroundColor: '#4A5373' },
-                  borderRadius: '6px'
-                }}
-              >
-                Copy Email Details
-              </Button>
-              <Button
-                variant='outlined'
-                size='small'
-                href={`mailto:${emailAddress}`}
-                sx={{
-                  color: '#ffffff',
-                  textTransform: 'none',
-                  borderColor: '#ffffff',
-                  '&:hover': {
-                    borderColor: '#ffffff',
-                    backgroundColor: 'rgba(255,255,255,0.08)'
-                  },
-                  borderRadius: '6px'
-                }}
-              >
-                Open in Email App
-              </Button>
-            </Box>
-          ) : (
-            <Typography sx={linkStyle} role='button' tabIndex={0}>
-              {text}
-            </Typography>
-          )}
+          <Typography sx={textStyle}>{emailAddress}</Typography>
+          <Button
+            variant='contained'
+            size='small'
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(emailAddress)
+                setSnackbarOpen(true)
+              } catch (err) {
+                setSnackbarOpen(true)
+              }
+            }}
+            sx={{
+              color: '#ffffff',
+              textTransform: 'none',
+              backgroundColor: '#3A4260',
+              '&:hover': { backgroundColor: '#4A5373' },
+              borderRadius: '6px'
+            }}
+          >
+            Copy Email Details
+          </Button>
+          <Button
+            variant='outlined'
+            size='small'
+            href={`mailto:${emailAddress}`}
+            sx={{
+              color: '#ffffff',
+              textTransform: 'none',
+              borderColor: '#ffffff',
+              '&:hover': {
+                borderColor: '#ffffff',
+                backgroundColor: 'rgba(255,255,255,0.08)'
+              },
+              borderRadius: '6px'
+            }}
+          >
+            Open in Email App
+          </Button>
 
           <Snackbar
             open={snackbarOpen}
