@@ -1,6 +1,13 @@
 import { useTheme } from '@mui/material/styles'
 import React from 'react'
-import { Box, Typography, useMediaQuery, Container } from '@mui/material'
+import {
+  Box,
+  Typography,
+  useMediaQuery,
+  Container,
+  Button,
+  Snackbar
+} from '@mui/material'
 import Link from 'next/link'
 
 const CCHeartIcon = () => (
@@ -139,8 +146,8 @@ const Footer: React.FC = () => {
             />
             <FooterItem
               icon={<EmailIcon />}
-              text='support@linkedcreds.org'
-              href='mailto:support@linkedcreds.org'
+              text='support@linkedcreds.allskillsscount.com'
+              isEmailActions={true}
             />
           </Box>
         ) : isTablet ? (
@@ -194,8 +201,8 @@ const Footer: React.FC = () => {
               />
               <FooterItem
                 icon={<EmailIcon />}
-                text='support@linkedcreds.org'
-                href='mailto:support@linkedcreds.org'
+                text='support@linkedcreds.allskillsscount.com'
+                isEmailActions={true}
               />
             </Box>
           </Box>
@@ -235,8 +242,8 @@ const Footer: React.FC = () => {
             />
             <FooterItem
               icon={<EmailIcon />}
-              text='support@linkedcreds.org'
-              href='mailto:support@linkedcreds.org'
+              text='support@linkedcreds.allskillsscount.com'
+              isEmailActions={true}
             />
           </Box>
         )}
@@ -250,9 +257,20 @@ interface FooterItemProps {
   text: string
   href?: string
   isSourceCode?: boolean
+  isEmailActions?: boolean
 }
 
-const FooterItem: React.FC<FooterItemProps> = ({ icon, text, href, isSourceCode }) => {
+const FooterItem: React.FC<FooterItemProps> = ({
+  icon,
+  text,
+  href,
+  isSourceCode,
+  isEmailActions
+}) => {
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false)
+  const [showActions, setShowActions] = React.useState(false)
+  const emailAddress = 'support@linkedcreds.allskillsscount.com'
+
   const textStyle = {
     color: '#ffffff',
     fontFamily: 'Nunito Sans, sans-serif',
@@ -286,6 +304,77 @@ const FooterItem: React.FC<FooterItemProps> = ({ icon, text, href, isSourceCode 
           <Typography component='span' sx={{ ...linkStyle, ml: 0 }}>
             https://github.com/Cooperation-org/linked-claims-author
           </Typography>
+        </Box>
+      ) : isEmailActions ? (
+        <Box
+          onMouseEnter={() => setShowActions(true)}
+          onMouseLeave={() => setShowActions(false)}
+          onFocus={() => setShowActions(true)}
+          onBlur={() => setShowActions(false)}
+          onTouchStart={() => setShowActions(prev => !prev)}
+        >
+          {showActions ? (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                ml: 1.5,
+                flexWrap: 'wrap'
+              }}
+            >
+              <Button
+                variant='contained'
+                size='small'
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(emailAddress)
+                    setSnackbarOpen(true)
+                  } catch (err) {
+                    setSnackbarOpen(true)
+                  }
+                }}
+                sx={{
+                  color: '#ffffff',
+                  textTransform: 'none',
+                  backgroundColor: '#3A4260',
+                  '&:hover': { backgroundColor: '#4A5373' },
+                  borderRadius: '6px'
+                }}
+              >
+                Copy Email Details
+              </Button>
+              <Button
+                variant='outlined'
+                size='small'
+                href={`mailto:${emailAddress}`}
+                sx={{
+                  color: '#ffffff',
+                  textTransform: 'none',
+                  borderColor: '#ffffff',
+                  '&:hover': {
+                    borderColor: '#ffffff',
+                    backgroundColor: 'rgba(255,255,255,0.08)'
+                  },
+                  borderRadius: '6px'
+                }}
+              >
+                Open in Email App
+              </Button>
+            </Box>
+          ) : (
+            <Typography sx={linkStyle} role='button' tabIndex={0}>
+              {text}
+            </Typography>
+          )}
+
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={2000}
+            onClose={() => setSnackbarOpen(false)}
+            message='Email copied to clipboard'
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          />
         </Box>
       ) : (
         <Typography sx={href ? linkStyle : textStyle}>{text}</Typography>
