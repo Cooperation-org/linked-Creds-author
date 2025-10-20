@@ -335,7 +335,7 @@ const HamburgerMenu = () => {
           <Box
             sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '22px' }}
           >
-            <Link href='/about' passHref>
+            <Link href='/help' passHref>
               <Box
                 sx={{
                   display: 'flex',
