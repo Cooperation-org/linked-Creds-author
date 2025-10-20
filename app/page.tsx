@@ -137,7 +137,7 @@ const HeroSection: React.FC<SectionProps & { showCards: boolean }> = ({ showCard
     >
       <Box
         sx={{
-          width: { xs: '100%', sm: '100%', md: '45%', lg: '40vw' },
+          width: { xs: '100%', sm: '100%', md: '35%', lg: '40vw' },
           maxWidth: { xs: '100%', sm: '500px', md: '600px', lg: '771px' },
           textAlign: { xs: 'center', sm: 'center', md: 'left' },
           alignSelf: { xs: 'center', sm: 'center', md: 'flex-start' },
@@ -231,8 +231,9 @@ const HeroSection: React.FC<SectionProps & { showCards: boolean }> = ({ showCard
             gap: { md: '8px', lg: '15px' },
             px: { md: '10px', lg: '20px' },
             overflow: 'hidden',
-            width: { md: '55%', lg: '60%' },
-            maxWidth: { md: '100%', lg: 'none' }
+            width: { md: '65%', lg: '70%' },
+            maxWidth: { md: '100%', lg: 'none' },
+            height: { md: '452px', lg: '452px' }
           }}
         >
           {EXAMPLE_CARDS.map((card, index) => (
