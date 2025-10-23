@@ -45,7 +45,6 @@ const NavBar = () => {
         zIndex: 1000
       }}
     >
-      {/* Logo and Name */}
       <Box
         sx={{
           cursor: 'pointer',
