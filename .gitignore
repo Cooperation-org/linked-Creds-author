@@ -38,7 +38,7 @@ next-env.d.ts
 
 # packages
 /package-lock.json
-/yarn.lock
+# yarn.lock should be committed for consistent installs
 
 # Playwright
 node_modules/
