@@ -237,7 +237,6 @@ const GenericCredentialViewer: React.FC<GenericCredentialViewerProps> = ({
             key={index}
             label={type}
             size='small'
-            size='small'
             sx={{ mr: 1, mb: 1 }}
             color={type === 'VerifiableCredential' ? 'primary' : 'default'}
           />

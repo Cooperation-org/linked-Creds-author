@@ -26,6 +26,7 @@ import {
   storeCredentialMetadata,
   updateCredentialVerification
 } from '../utils/credentialMetadata'
+import { verifyCredential } from '../utils/verification'
 import { incrementExternalImports } from '../firebase/firestore'
 import { incrementCredentialTypeCount } from '../firebase/firestore'
 
@@ -271,6 +272,7 @@ function SimpleCredentialForm() {
       })
 
       // Update verification status for normalized copy (post-import verify normalized)
+      const verificationResult = verifyCredential(vcData)
       await updateCredentialVerification(normalizedFile.id, verificationResult)
 
       // 4) Increment analytics for external imports
