@@ -142,15 +142,6 @@ const ComprehensiveClaimDetails: React.FC<ComprehensiveClaimDetailsProps> = ({
     if (status === 'loading') {
       return
     }
-    if (status === 'unauthenticated') {
-      setLoading(false)
-      return
-    }
-    if (!accessToken) {
-      setErrorMessage('You need to log in to view this content.')
-      setLoading(false)
-      return
-    }
     const fetchDriveData = async () => {
       try {
         const accessToken1 = await getAccessToken(fileID)
