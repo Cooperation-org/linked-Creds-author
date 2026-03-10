@@ -1,5 +1,7 @@
 import { CredentialEngine, GoogleDriveStorage } from '@cooperation/vc-storage'
 import { FormData } from '../credentialForm/form/types/Types'
+import { normalizeSkillClaimFormData, SkillClaimFormData } from './normalization/hrContextSkillClaim'
+import { ISkillClaimCredential } from 'hr-context'
 
 interface FormDataI {
   expirationDate: string
@@ -92,13 +94,10 @@ const signCred = async (
       })
     } else {
       formData = generateCredentialData(data)
-      console.log('🚀 ~ formData:', formData)
-      signedVC = await credentialEngine.signVC({
-        data: formData,
-        type: 'VC',
-        keyPair,
-        issuerId: issuerDid
-      })
+      console.log('🚀 ~ signCred ~ formData:', formData)
+      const normalizedData: SkillClaimFormData = normalizeSkillClaimFormData(formData as unknown as FormData)
+      console.log('🚀 ~ signCred ~ normalizedData:', normalizedData)
+      signedVC = await credentialEngine.signSkillClaimVC(normalizedData as unknown as ISkillClaimCredential, keyPair, issuerDid)
     }
 
     return signedVC
